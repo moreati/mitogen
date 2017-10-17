@@ -37,7 +37,7 @@ name in the function's source code.
     python -c 'exec "xxx".decode("base64").decode("zlib")'
 
 The command-line arranges for the Python interpreter to decode the base64'd
-component, decompress it and execute it as Python code. Base64 is used since
+component, decompress it and execute it as Python code. Base64 is used
 to protect against any special characters that may be interpreted by the system
 shell in use.
 
@@ -57,7 +57,7 @@ writing the decompressed result to the write-end of the UNIX pipe.
 
 To allow recovery of ``stdin`` for reuse by the bootstrapped process for
 parent<->child communication, it is necessary for the first stage to avoid
-closing ``stdin`` or reading from it until until EOF. Therefore, the master
+closing ``stdin`` or reading from it until EOF. Therefore, the master
 sends the :py:mod:`zlib`-compressed payload prefixed with an integer size,
 allowing reading by the first stage of exactly the required bytes.
 
