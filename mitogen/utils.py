@@ -32,20 +32,25 @@ import mitogen
 import mitogen.core
 import mitogen.master
 
+if 0:
+    from typing import * # pylint: disable=import-error
+    from types import FunctionType
 
 LOG = logging.getLogger('mitogen')
 
 
 def disable_site_packages():
+    # type: () -> None
     for entry in sys.path[:]:
         if 'site-packages' in entry or 'Extras' in entry:
             sys.path.remove(entry)
 
 
 def log_to_file(path=None, io=True, level='INFO'):
+    # type: (Optional[str], bool, str) -> None
     log = logging.getLogger('')
     if path:
-        fp = open(path, 'w', 1)
+        fp = open(path, 'w', 1) # type: Union[BinaryIO, IO]
         mitogen.core.set_cloexec(fp.fileno())
     else:
         fp = sys.stderr
@@ -63,6 +68,7 @@ def log_to_file(path=None, io=True, level='INFO'):
 
 
 def run_with_router(func, *args, **kwargs):
+    # type: (Callable, object, object) -> Any
     broker = mitogen.master.Broker()
     router = mitogen.master.Router(broker)
     try:
@@ -73,7 +79,9 @@ def run_with_router(func, *args, **kwargs):
 
 
 def with_router(func):
+    # type: (FunctionType) -> Callable
     def wrapper(*args, **kwargs):
+        # type: (object, object) -> Any
         return run_with_router(func, *args, **kwargs)
     wrapper.func_name = func.func_name
     return wrapper

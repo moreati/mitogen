@@ -1,0 +1,13 @@
+from typing import *
+
+class Become:
+    _become              = ... # type: bool
+    _become_method       = ... # type: str
+    _become_user         = ... # type: str
+    _become_flags        = ... # type: str
+
+    def __init__(self) -> None: ...
+
+    def _detect_privilege_escalation_conflict(self, ds: Any) -> None: ...
+    def _preprocess_data_become(self, ds: Any) -> Any: ...
+    def set_become_defaults(self, become: bool, become_method: Optional[str], become_user: Optional[str]) -> None: ...

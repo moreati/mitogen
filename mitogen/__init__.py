@@ -25,6 +25,9 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if 0:
+    from typing import * # pylint: disable=import-error
+
 """
 On the Mitogen master, this is imported from ``mitogen/__init__.py`` as would
 be expected. On the slave, it is built dynamically during startup.
@@ -47,19 +50,19 @@ be expected. On the slave, it is built dynamically during startup.
 #:              import mitogen.utils
 #:              mitogen.utils.run_with_broker(main)
 #:
-is_master = True
+is_master = True # type: bool
 
 
 #: This is ``0`` in a master, otherwise it is a master-generated ID unique to
 #: the slave context used for message routing.
-context_id = 0
+context_id = 0 # type: int
 
 
 #: This is ``None`` in a master, otherwise it is the master-generated ID unique
 #: to the slave's parent context.
-parent_id = None
+parent_id = None # type: Optional[int]
 
 
 #: This is an empty list in a master, otherwise it is a list of parent context
 #: IDs ordered from most direct to least direct.
-parent_ids = []
+parent_ids = []  # type: List[int]

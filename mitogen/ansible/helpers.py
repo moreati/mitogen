@@ -35,9 +35,12 @@ Ansible won't be imported.
 """
 
 import subprocess
+if 0:
+    from typing import * # pylint: disable=import-error
 
 
 def exec_command(cmd, in_data=None):
+    # type: (List[str], Optional[bytes]) -> Tuple[int, bytes, bytes]
     proc = subprocess.Popen(cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -48,8 +51,10 @@ def exec_command(cmd, in_data=None):
 
 
 def read_path(path):
+    # type: (str) -> bytes
     return open(path, 'rb').read()
 
 
 def write_path(path, s):
+    # type: (str, bytes) -> None
     open(path, 'wb').write(s)

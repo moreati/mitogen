@@ -37,6 +37,9 @@ import sys
 import tempfile
 import threading
 
+if 0:
+    from typing import * # pylint: disable=import-error
+
 import mitogen.core
 import mitogen.master
 
@@ -56,15 +59,18 @@ class IoPump(mitogen.core.BasicStream):
     _closed = False
 
     def __init__(self, broker, stdin_fd, stdout_fd):
+        # type: (mitogen.core.Broker, int, int) -> None
         self._broker = broker
         self.receive_side = mitogen.core.Side(self, stdout_fd)
         self.transmit_side = mitogen.core.Side(self, stdin_fd)
 
     def write(self, s):
+        # type: (str) -> None
         self._output_buf += s
         self._broker.start_transmit(self)
 
     def close(self):
+        # type: () -> None
         self._closed = True
         # If local process hasn't exitted yet, ensure its write buffer is
         # drained before lazily triggering disconnect in on_transmit.
@@ -72,9 +78,11 @@ class IoPump(mitogen.core.BasicStream):
             self._broker.start_transmit(self)
 
     def on_shutdown(self, broker):
+        # type: (mitogen.core.Broker) -> None
         self.close()
 
     def on_transmit(self, broker):
+        # type: (mitogen.core.Broker) -> None
         written = self.transmit_side.write(self._output_buf)
         IOLOG.debug('%r.on_transmit() -> len %r', self, written)
         if written is None:
@@ -88,6 +96,7 @@ class IoPump(mitogen.core.BasicStream):
                 self.on_disconnect(broker)
 
     def on_receive(self, broker):
+        # type: (mitogen.core.Broker) -> None
         s = self.receive_side.read()
         IOLOG.debug('%r.on_receive() -> len %r', self, len(s))
         if s:
@@ -96,6 +105,7 @@ class IoPump(mitogen.core.BasicStream):
             self.on_disconnect(broker)
 
     def __repr__(self):
+        # type: () -> str
         return 'IoPump(%r, %r)' % (
             self.receive_side.fd,
             self.transmit_side.fd,
@@ -108,6 +118,7 @@ class Process(object):
     slave.
     """
     def __init__(self, router, stdin_fd, stdout_fd, proc=None):
+        # type: (mitogen.core.Router, int, int, Optional[subprocess.Popen]) -> None
         self.router = router
         self.stdin_fd = stdin_fd
         self.stdout_fd = stdout_fd
@@ -115,8 +126,8 @@ class Process(object):
         self.control_handle = router.add_handler(self._on_control)
         self.stdin_handle = router.add_handler(self._on_stdin)
         self.pump = IoPump(router.broker, stdin_fd, stdout_fd)
-        self.stdin = None
-        self.control = None
+        self.stdin = None # type: Optional[mitogen.core.Sender]
+        self.control = None # type: Optional[mitogen.core.Sender]
         self.wake_event = threading.Event()
 
         mitogen.core.listen(self.pump, 'disconnect', self._on_pump_disconnect)
@@ -127,13 +138,17 @@ class Process(object):
             pmon.add(proc.pid, self._on_proc_exit)
 
     def __repr__(self):
+        #type: () -> str
         return 'Process(%r, %r)' % (self.stdin_fd, self.stdout_fd)
 
     def _on_proc_exit(self, status):
+        # type: (int) -> None
         LOG.debug('%r._on_proc_exit(%r)', self, status)
+        assert isinstance(self.control, mitogen.core.Sender)
         self.control.put(('exit', status))
 
     def _on_stdin(self, msg):
+        # type: (Any) -> None
         if msg == mitogen.core._DEAD:
             return
 
@@ -147,23 +162,27 @@ class Process(object):
         self.pump.write(data)
 
     def _on_control(self, msg):
+        # type: (Any) -> None
         if msg != mitogen.core._DEAD:
             command, arg = msg.unpickle()
             LOG.debug('%r._on_control(%r, %s)', self, command, arg)
 
-            func = getattr(self, '_on_%s' % (command,), None)
+            func = getattr(self, '_on_%s' % (command,), None) # type Optional[Callable[[mitogen.core.Message, Tuple[int, int]], None]]
             if func:
-                return func(msg, arg)
+                func(msg, arg)
+                return
 
             LOG.warning('%r: unknown command %r', self, command)
 
     def _on_start(self, msg, arg):
+        # type: (mitogen.core.Message, Tuple[int, int]) -> None
         dest = mitogen.core.Context(self.router, msg.src_id)
         self.control = mitogen.core.Sender(dest, arg[0])
         self.stdin = mitogen.core.Sender(dest, arg[1])
         self.router.broker.start_receive(self.pump)
 
     def _on_exit(self, msg, arg):
+        # type: (mitogen.core.Message, Tuple[int, int]) -> None
         LOG.debug('on_exit: proc = %r', self.proc)
         if self.proc:
             self.proc.terminate()
@@ -171,22 +190,28 @@ class Process(object):
             self.router.broker.shutdown()
 
     def _on_pump_receive(self, s):
+        # type: (bytes) -> None
         IOLOG.info('%r._on_pump_receive(len %d)', self, len(s))
+        assert isinstance(self.stdin, mitogen.core.Sender)
         self.stdin.put(s)
 
     def _on_pump_disconnect(self):
+        # type: () -> None
         LOG.debug('%r._on_pump_disconnect()', self)
         mitogen.core.fire(self, 'disconnect')
+        assert isinstance(self.stdin, mitogen.core.Sender)
         self.stdin.close()
         self.wake_event.set()
 
     def start_master(self, stdin, control):
+        # type: (mitogen.core.Sender, mitogen.core.Sender) -> None
         self.stdin = stdin
         self.control = control
         control.put(('start', (self.control_handle, self.stdin_handle)))
         self.router.broker.start_receive(self.pump)
 
     def wait(self):
+        # type: () -> None
         while not self.wake_event.isSet():
             # Timeout is used so that sleep is interruptible, as blocking
             # variants of libc thread operations cannot be interrupted e.g. via
@@ -197,6 +222,7 @@ class Process(object):
 
 @mitogen.core.takes_router
 def _start_slave(src_id, cmdline, router):
+    # type: (int, List[str], mitogen.core.Router) -> Tuple[int, int]
     """
     This runs in the target context, it is invoked by _fakessh_main running in
     the fakessh context immediately after startup. It starts the slave process
@@ -230,10 +256,12 @@ def _start_slave(src_id, cmdline, router):
 
 
 def exit():
+    # type: () -> None
     _mitogen.broker.shutdown()
 
 
 def die(msg, *args):
+    # type: (str, Any) -> None
     if args:
         msg %= args
     print msg
@@ -241,9 +269,10 @@ def die(msg, *args):
 
 
 def parse_args():
+    # type: () -> Tuple[str, List[Tuple[str, str]], List[str]]
     hostname = None
     remain = sys.argv[1:]
-    allopts = []
+    allopts = [] # type: List[Tuple[str, str]]
     restarted = 0
 
     while remain and restarted < 2:
@@ -259,11 +288,13 @@ def parse_args():
 
         restarted += 1
 
+    assert hostname is not None
     return hostname, allopts, args
 
 
 @mitogen.core.takes_econtext
 def _fakessh_main(dest_context_id, econtext):
+    # type: (int, Any) -> None
     hostname, opts, args = parse_args()
     if not hostname:
         die('Missing hostname')
@@ -302,6 +333,7 @@ def _fakessh_main(dest_context_id, econtext):
         control=mitogen.core.Sender(dest, control_handle),
     )
     process.wait()
+    assert isinstance(process.control, mitogen.core.Sender)
     process.control.put(('exit', None))
 
 
@@ -312,6 +344,7 @@ def _fakessh_main(dest_context_id, econtext):
 @mitogen.core.takes_econtext
 @mitogen.core.takes_router
 def run(dest, router, args, deadline=None, econtext=None):
+    # type: (mitogen.core.Context, mitogen.master.Router, List[str], Optional[Union[int, float]], Optional[mitogen.core.ExternalContext]) -> int
     if econtext is not None:
         mitogen.master.upgrade_router(econtext)
 

@@ -33,6 +33,9 @@ import commands
 import logging
 import time
 
+if 0:
+    from typing import * # pylint: disable=import-error
+
 import mitogen.master
 
 
@@ -53,13 +56,14 @@ class Stream(mitogen.master.Stream):
     #: The path to the SSH binary.
     ssh_path = 'ssh'
 
-    identity_file = None
-    password = None
-    port = None
+    identity_file = None # type: Optional[str]
+    password = None # type: Optional[str]
+    port = None # type: Optional[int]
 
     def construct(self, hostname, username=None, ssh_path=None, port=None,
                   check_host_keys=True, password=None, identity_file=None,
                   **kwargs):
+        # type: (str, Optional[str], Optional[str], Optional[int], bool, Optional[str], Optional[str], object) -> None
         super(Stream, self).construct(**kwargs)
         self.hostname = hostname
         self.username = username
@@ -71,6 +75,7 @@ class Stream(mitogen.master.Stream):
             self.ssh_path = ssh_path
 
     def get_boot_command(self):
+        # type: () -> List[str]
         bits = [self.ssh_path]
         #bits += ['-o', 'BatchMode yes']
 
@@ -92,6 +97,7 @@ class Stream(mitogen.master.Stream):
         return bits + [commands.mkarg(s).strip() for s in base]
 
     def connect(self):
+        # type: () -> None
         super(Stream, self).connect()
         self.name = 'ssh.' + self.hostname
         if self.port:
@@ -102,7 +108,10 @@ class Stream(mitogen.master.Stream):
     password_required_msg = 'SSH password was requested, but none specified'
 
     def _connect_bootstrap(self):
+        # TODO Why does this try to return from a method that has no return?
+        # type: () -> None
         password_sent = False
+        assert self.receive_side.fd is not None
         for buf in mitogen.master.iter_read(self.receive_side.fd,
                                              time.time() + 10.0):
             LOG.debug('%r: received %r', self, buf)

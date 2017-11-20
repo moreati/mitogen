@@ -29,6 +29,9 @@ import logging
 import os
 import time
 
+if 0:
+    from typing import * # pylint: disable=import-error
+
 import mitogen.core
 import mitogen.master
 
@@ -44,9 +47,10 @@ class PasswordError(mitogen.core.Error):
 class Stream(mitogen.master.Stream):
     create_child = staticmethod(mitogen.master.tty_create_child)
     sudo_path = 'sudo'
-    password = None
+    password = None # type: str
 
     def construct(self, username=None, sudo_path=None, password=None, **kwargs):
+        # type: (Optional[str], Optional[str], Optional[str], object) -> None
         """
         Get the named sudo context, creating it if it does not exist.
 
@@ -79,10 +83,12 @@ class Stream(mitogen.master.Stream):
             self.password = password
 
     def connect(self):
+        # type: () -> None
         super(Stream, self).connect()
         self.name = 'sudo.' + self.username
 
     def get_boot_command(self):
+        # type: () -> List[str]
         bits = [self.sudo_path, '-u', self.username]
         bits = bits + super(Stream, self).get_boot_command()
         LOG.debug('sudo command line: %r', bits)
@@ -92,7 +98,10 @@ class Stream(mitogen.master.Stream):
     password_required_msg = 'sudo password is required'
 
     def _connect_bootstrap(self):
+        # TODO Why does this try to return from a method that has no return?
+        # type: () -> None
         password_sent = False
+        assert self.receive_side.fd is not None
         for buf in mitogen.master.iter_read(self.receive_side.fd,
                                              time.time() + 10.0):
             LOG.debug('%r: received %r', self, buf)
@@ -105,6 +114,7 @@ class Stream(mitogen.master.Stream):
                 if password_sent:
                     raise PasswordError(self.password_incorrect_msg)
                 LOG.debug('sending password')
+                assert self.transmit_side.fd is not None
                 os.write(self.transmit_side.fd, self.password + '\n')
                 password_sent = True
         else:

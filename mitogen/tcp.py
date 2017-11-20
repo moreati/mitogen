@@ -32,6 +32,9 @@ plain TCP connection.
 
 import socket
 
+if 0:
+    from typing import * # pylint: disable=import-error
+
 import mitogen.core
 
 from mitogen.core import LOG
@@ -39,6 +42,7 @@ from mitogen.core import LOG
 
 class Listener(mitogen.core.BasicStream):
     def __init__(self, broker, address=None, backlog=30):
+        # type: (mitogen.core.Broker, Optional[tuple], int) -> None
         self._broker = broker
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.bind(address or ('0.0.0.0', 0))
@@ -49,6 +53,7 @@ class Listener(mitogen.core.BasicStream):
         broker.start_receive(self)
 
     def on_receive(self, broker):
+        # type: (mitogen.core.Broker) -> None
         sock, addr = self._sock.accept()
         context = mitogen.core.Context(self._broker, name=addr)
         stream = mitogen.core.Stream(context)
@@ -56,11 +61,13 @@ class Listener(mitogen.core.BasicStream):
 
 
 def listen(broker, address=None, backlog=30):
+    # type: (mitogen.core.Broker, Optional[tuple], int) -> Listener
     """Listen on `address` for connections from newly spawned contexts."""
     return Listener(broker, address, backlog)
 
 
 def connect(context):
+    # type: (self.core.Context) -> None
     """Connect to a Broker at the address specified in our associated
     Context."""
     LOG.debug('%s.connect()', __name__)

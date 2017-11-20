@@ -42,6 +42,9 @@ Enable it by:
     EOF
 """
 
+if 0:
+    from typing import * # pylint: disable=import-error
+
 import mitogen.master
 import mitogen.ssh
 import mitogen.utils
@@ -55,26 +58,29 @@ class Connection(ansible.plugins.connection.ConnectionBase):
     broker = None
     context = None
 
-    become_methods = []
+    become_methods = [] # type: List[str]
     transport = 'mitogen'
 
     @property
     def connected(self):
+        # type: () -> bool
         return self.broker is not None
 
     def _connect(self):
+        # type: () -> None
         if self.connected:
             return
         self.broker = mitogen.master.Broker()
         self.router = mitogen.master.Router(self.broker)
         if self._play_context.remote_addr == 'localhost':
-            self.context = self.router.connect(mitogen.master.Stream)
+            self.context = self.router.connect('local')
         else:
-            self.context = self.router.connect(mitogen.ssh.Stream,
+            self.context = self.router.connect('ssh',
                 hostname=self._play_context.remote_addr,
             )
 
     def exec_command(self, cmd, in_data=None, sudoable=True):
+        # type: (List[str], Optional[bytes], bool) -> Any
         super(Connection, self).exec_command(cmd, in_data=in_data, sudoable=sudoable)
         if in_data:
             raise ansible.errors.AnsibleError("does not support module pipelining")
@@ -82,13 +88,16 @@ class Connection(ansible.plugins.connection.ConnectionBase):
         return self.context.call(helpers.exec_command, cmd, in_data)
 
     def fetch_file(self, in_path, out_path):
+        # type: (str, str) -> None
         output = self.context.call(helpers.read_path, in_path)
         helpers.write_path(out_path, output)
 
     def put_file(self, in_path, out_path):
+        # type: (str, str) -> None
         self.context.call(helpers.write_path, out_path,
                           helpers.read_path(in_path))
 
     def close(self):
+        # type: () -> None
         self.broker.shutdown()
         self.broker.join()
