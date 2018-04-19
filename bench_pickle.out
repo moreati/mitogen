@@ -1,0 +1,245 @@
+.....................
+loads,float,protocol=0,len=1: Mean +- std dev: 367 ns +- 25 ns
+.....................
+loads,float,protocol=0,len=2: Mean +- std dev: 368 ns +- 12 ns
+.....................
+loads,float,protocol=0,len=11: Mean +- std dev: 389 ns +- 7 ns
+.....................
+loads,float,protocol=0,len=101: Mean +- std dev: 606 ns +- 13 ns
+.....................
+loads,float,protocol=0,len=1001: Mean +- std dev: 2.45 us +- 0.12 us
+.....................
+loads,float,protocol=0,len=10001: Mean +- std dev: 21.0 us +- 0.3 us
+.....................
+loads,float,protocol=0,len=100001: Mean +- std dev: 212 us +- 15 us
+.....................
+loads,float,protocol=0,len=1000001: Mean +- std dev: 2.12 ms +- 0.05 ms
+.....................
+loads,int,protocol=0,len=1: Mean +- std dev: 360 ns +- 18 ns
+.....................
+loads,int,protocol=0,len=2: Mean +- std dev: 384 ns +- 7 ns
+.....................
+loads,int,protocol=0,len=11: Mean +- std dev: 413 ns +- 11 ns
+.....................
+loads,int,protocol=0,len=101: Mean +- std dev: 694 ns +- 12 ns
+.....................
+loads,int,protocol=0,len=1001: Mean +- std dev: 7.61 us +- 0.09 us
+.....................
+loads,int,protocol=0,len=10001: Mean +- std dev: 550 us +- 6 us
+.....................
+loads,int,protocol=0,len=100001: Mean +- std dev: 52.5 ms +- 0.7 ms
+.....................
+loads,int,protocol=0,len=1000001: Mean +- std dev: 4.91 sec +- 0.09 sec
+.....................
+loads,bytes,protocol=0,len=0: Mean +- std dev: 353 ns +- 27 ns
+.....................
+loads,bytes,protocol=0,len=1: Mean +- std dev: 357 ns +- 13 ns
+.....................
+loads,bytes,protocol=0,len=10: Mean +- std dev: 369 ns +- 9 ns
+.....................
+loads,bytes,protocol=0,len=100: Mean +- std dev: 495 ns +- 41 ns
+.....................
+loads,bytes,protocol=0,len=1000: Mean +- std dev: 1.53 us +- 0.07 us
+.....................
+loads,bytes,protocol=0,len=10000: Mean +- std dev: 11.1 us +- 0.1 us
+.....................
+loads,bytes,protocol=0,len=100000: Mean +- std dev: 109 us +- 1 us
+.....................
+loads,bytes,protocol=0,len=1000000: Mean +- std dev: 1.11 ms +- 0.03 ms
+.....................
+loads,unicode,protocol=0,len=0: Mean +- std dev: 345 ns +- 14 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (35.0 ns) is 10% of the mean (348 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,unicode,protocol=0,len=1: Mean +- std dev: 348 ns +- 35 ns
+.....................
+loads,unicode,protocol=0,len=10: Mean +- std dev: 364 ns +- 8 ns
+.....................
+loads,unicode,protocol=0,len=100: Mean +- std dev: 616 ns +- 15 ns
+.....................
+loads,unicode,protocol=0,len=1000: Mean +- std dev: 2.92 us +- 0.09 us
+.....................
+loads,unicode,protocol=0,len=10000: Mean +- std dev: 24.9 us +- 0.6 us
+.....................
+loads,unicode,protocol=0,len=100000: Mean +- std dev: 246 us +- 7 us
+.....................
+loads,unicode,protocol=0,len=1000000: Mean +- std dev: 2.46 ms +- 0.08 ms
+.....................
+loads,float,protocol=2,len=1: Mean +- std dev: 337 ns +- 3 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (46.8 ns) is 13% of the mean (353 ns)
+* the maximum (529 ns) is 50% greater than the mean (353 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,float,protocol=2,len=2: Mean +- std dev: 353 ns +- 47 ns
+.....................
+loads,float,protocol=2,len=11: Mean +- std dev: 338 ns +- 5 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (51.3 ns) is 14% of the mean (358 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,float,protocol=2,len=101: Mean +- std dev: 358 ns +- 51 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the maximum (524 ns) is 51% greater than the mean (347 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,float,protocol=2,len=1001: Mean +- std dev: 347 ns +- 34 ns
+.....................
+loads,float,protocol=2,len=10001: Mean +- std dev: 340 ns +- 18 ns
+.....................
+loads,float,protocol=2,len=100001: Mean +- std dev: 338 ns +- 13 ns
+.....................
+loads,float,protocol=2,len=1000001: Mean +- std dev: 338 ns +- 5 ns
+.....................
+loads,int,protocol=2,len=1: Mean +- std dev: 327 ns +- 2 ns
+.....................
+loads,int,protocol=2,len=2: Mean +- std dev: 326 ns +- 2 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (46.5 ns) is 12% of the mean (404 ns)
+* the maximum (608 ns) is 50% greater than the mean (404 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,int,protocol=2,len=11: Mean +- std dev: 404 ns +- 47 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (42.1 ns) is 10% of the mean (415 ns)
+* the maximum (634 ns) is 53% greater than the mean (415 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,int,protocol=2,len=101: Mean +- std dev: 415 ns +- 42 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (83.7 ns) is 10% of the mean (827 ns)
+* the maximum (1.31 us) is 58% greater than the mean (827 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,int,protocol=2,len=1001: Mean +- std dev: 827 ns +- 84 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the maximum (7.92 us) is 64% greater than the mean (4.84 us)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,int,protocol=2,len=10001: Mean +- std dev: 4.84 us +- 0.44 us
+.....................
+loads,int,protocol=2,len=100001: Mean +- std dev: 43.5 us +- 0.3 us
+.....................
+loads,int,protocol=2,len=1000001: Mean +- std dev: 429 us +- 3 us
+.....................
+WARNING: the benchmark result may be unstable
+* the maximum (512 ns) is 51% greater than the mean (339 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,bytes,protocol=2,len=0: Mean +- std dev: 339 ns +- 31 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the maximum (521 ns) is 52% greater than the mean (342 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,bytes,protocol=2,len=1: Mean +- std dev: 342 ns +- 26 ns
+.....................
+loads,bytes,protocol=2,len=10: Mean +- std dev: 348 ns +- 14 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (41.3 ns) is 12% of the mean (357 ns)
+* the maximum (536 ns) is 50% greater than the mean (357 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,bytes,protocol=2,len=100: Mean +- std dev: 357 ns +- 41 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (67.4 ns) is 14% of the mean (465 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,bytes,protocol=2,len=1000: Mean +- std dev: 465 ns +- 67 ns
+.....................
+loads,bytes,protocol=2,len=10000: Mean +- std dev: 635 ns +- 44 ns
+.....................
+loads,bytes,protocol=2,len=100000: Mean +- std dev: 5.03 us +- 0.09 us
+.....................
+loads,bytes,protocol=2,len=1000000: Mean +- std dev: 54.1 us +- 0.5 us
+.....................
+WARNING: the benchmark result may be unstable
+* the maximum (528 ns) is 51% greater than the mean (349 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,unicode,protocol=2,len=0: Mean +- std dev: 349 ns +- 32 ns
+.....................
+WARNING: the benchmark result may be unstable
+* the standard deviation (42.3 ns) is 12% of the mean (367 ns)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python -m perf system tune' command to reduce the system jitter.
+Use perf stats, perf dump and perf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+loads,unicode,protocol=2,len=1: Mean +- std dev: 367 ns +- 42 ns
+.....................
+loads,unicode,protocol=2,len=10: Mean +- std dev: 379 ns +- 4 ns
+.....................
+loads,unicode,protocol=2,len=100: Mean +- std dev: 587 ns +- 5 ns
+.....................
+loads,unicode,protocol=2,len=1000: Mean +- std dev: 2.58 us +- 0.01 us
+.....................
+loads,unicode,protocol=2,len=10000: Mean +- std dev: 21.7 us +- 0.1 us
+.....................
+loads,unicode,protocol=2,len=100000: Mean +- std dev: 213 us +- 2 us
+.....................
+loads,unicode,protocol=2,len=1000000: Mean +- std dev: 2.14 ms +- 0.02 ms
