@@ -17,7 +17,7 @@ for protocol in PROTOCOLS:
         if protocol == 0:
             # A pathological pickle that Python wouldn't noramlly create,
             # but that the protocol allows
-            s = 'F1.'+'0'*zeros+'\n.'
+            s = b'F1.'+b'0'*zeros+b'\n.'
         else:
             s = cpickle.dumps(float('1.'+'0'*zeros), protocol=protocol)
         runner.timeit(
