@@ -9,7 +9,7 @@ results to the caller on the master. To do this the results must be
 3. deserialized back to Python objects
 
 Currently this is implemented with `cPickle`, restricted to a whitelist of
-types/classes. However a replacement is sought.
+types/classes.
 
 The following principals/requirements must be met
 
