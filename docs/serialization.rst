@@ -11,6 +11,9 @@ results to the caller on the master. To do this the results must be
 Currently this is implemented with `cPickle`, restricted to a whitelist of
 types/classes.
 
+Requirements and features
+#########################
+
 The following principals/requirements must be met
 
 1. data from slaves is considered untrusted by the master, deserializing it
@@ -40,6 +43,8 @@ The following are _not_ requirements
    Mitogen spawns every child, so we can rely on Python being available
 2. forward or backward compatibility between versions of Mitogen;
    serialized objects only live as long as the Mitogen master process
+3. compatibility with ASCII only or text only channels;
+   channels can be assumed to be 8-bit clean
 
 Survey
 ------
