@@ -46,6 +46,21 @@ The following are _not_ requirements
 3. compatibility with ASCII only or text only channels;
    channels can be assumed to be 8-bit clean
 
+Other concerns
+##############
+
+Other questions that should be considered
+
+ - Data tampering: parent > child (HMAC messages from master?)
+ - Data tampering: child > parent (Possible to bootstrap HMAC wo PKI?)
+ - Message injection/spoofing:
+    - child a sends message to parent supposedly from child b
+    - child a sends message to another child, supposedly from parent
+ - Denial of service
+    - Billion Laughs/Zip Bomb (memory exhaustion, CPU exhaustion)
+    - Dropping messages
+
+
 Survey
 ------
 
