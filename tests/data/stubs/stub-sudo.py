@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-import json
 import os
 import subprocess
 import sys
 
-os.environ['ORIGINAL_ARGV'] = json.dumps(sys.argv)
+os.environ['ORIGINAL_ARGV'] = repr(sys.argv)
 os.environ['THIS_IS_STUB_SUDO'] = '1'
 
 if os.environ.get('PREHISTORIC_SUDO'):

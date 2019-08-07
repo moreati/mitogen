@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import json
 import os
 import subprocess
 import sys
@@ -15,7 +14,7 @@ if 'DO_SLOW_AUTH_FAILURE' in os.environ:
     os._exit(1)
 
 
-os.environ['ORIGINAL_ARGV'] = json.dumps(sys.argv)
+os.environ['ORIGINAL_ARGV'] = repr(sys.argv)
 os.environ['THIS_IS_STUB_SU'] = '1'
 
 # This must be a child process and not exec() since Mitogen replaces its stderr

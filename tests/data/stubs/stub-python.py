@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-import json
 import os
 import subprocess
 import sys
 
-os.environ['ORIGINAL_ARGV'] = json.dumps(sys.argv)
+os.environ['ORIGINAL_ARGV'] = repr(sys.argv)
 os.environ['THIS_IS_STUB_PYTHON'] = '1'
 
 if sys.argv[1].startswith('-'):
