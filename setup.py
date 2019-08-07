@@ -33,11 +33,17 @@ from setuptools import find_packages, setup
 
 def grep_version():
     path = os.path.join(os.path.dirname(__file__), 'mitogen/__init__.py')
-    with open(path) as fp:
+    def _grep_version(fp):
         for line in fp:
             if line.startswith('__version__'):
-                _, _, s = line.partition('=')
+                _, s = line.split('=', 1)
                 return '.'.join(map(str, eval(s)))
+    fp = open(path)
+    try:
+        version = _grep_version(fp)
+    finally:
+        fp.close()
+    return version
 
 
 setup(
