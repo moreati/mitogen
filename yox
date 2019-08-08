@@ -3,11 +3,13 @@
 # Older versions of pip default to python.org/pypi, which has been retired.
 PYPI_INDEX="https://pypi.org/simple"
 
-~/.pyenv/versions/2.4.6/bin/pip install -i "$PYPI_INDEX" virtualenv==1.7.2
+PIP_OPTIONS="--index $PYPI_INDEX --download-cache .yox/cache/downloads"
+
+~/.pyenv/versions/2.4.6/bin/pip install $PIP_OPTIONS virtualenv==1.7.2
 ~/.pyenv/versions/2.4.6/bin/virtualenv -p ~/.pyenv/versions/2.4.6/bin/python .yox/py24
 source .yox/py24/bin/activate
-pip install -i "$PYPI_INDEX" -r tests/requirements_py24.txt
-pip install -i "$PYPI_INDEX" .
+pip install $PIP_OPTIONS -r tests/requirements_py24.txt
+pip install $PIP_OPTIONS -e .
 MITOGEN_TEST_DISTRO=debian \
 SKIP_ANSIBLE=1 \
 ./run_tests
