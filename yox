@@ -12,5 +12,5 @@ pip install $PIP_OPTIONS -r tests/requirements_py24.txt
 pip install $PIP_OPTIONS -e .
 MITOGEN_TEST_DISTRO=debian \
 SKIP_ANSIBLE=1 \
-./run_tests
+./run_tests "$@"
 deactivate
