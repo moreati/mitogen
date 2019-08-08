@@ -75,8 +75,11 @@ fi
 
 if [ ! "$NOCOVERAGE_REPORT" ]; then
     coverage html
-    echo "coverage report is at file://$(pwd)/htmlcov/index.html"
+    COVERAGE_HTML_STATUS=$?
+    if [ "$COVERAGE_HTML_STATUS" -eq 0 ]; then
+        echo "coverage report is at file://$(pwd)/htmlcov/index.html"
+    fi
 fi
 
 # Exit with a non-zero status if any test run did so
-exit "$(max $MITOGEN_TEST_STATUS $ANSIBLE_TEST_STATUS)"
+exit "$(max $MITOGEN_TEST_STATUS $ANSIBLE_TEST_STATUS ${COVERAGE_HTML_STATUS:-0})"

@@ -8,7 +8,6 @@ PYPI_INDEX="https://pypi.org/simple"
 source .yox/py24/bin/activate
 pip install -i "$PYPI_INDEX" -r tests/requirements_py24.txt
 pip install -i "$PYPI_INDEX" .
-NOCOVERAGE=1 \
 MITOGEN_TEST_DISTRO=debian \
 SKIP_ANSIBLE=1 \
 ./run_tests

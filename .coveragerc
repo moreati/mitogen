@@ -1,0 +1,12 @@
+[run]
+branch = true
+source =
+    mitogen
+omit =
+    mitogen/compat/*
+
+[report]
+# mitogen/profiler.py contains "except E as e", which is Python 2.6+ syntax.
+# So "coverage html" on Python 2.4/2.5 cannot parse the file. It aborts
+# before generating htmlcov/index.html.
+ignore_errors = true
