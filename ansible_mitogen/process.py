@@ -32,8 +32,8 @@ import logging
 import multiprocessing
 import os
 import resource
-import signal
 import socket
+import signal
 import sys
 
 try:
@@ -72,6 +72,8 @@ ANSIBLE_PKG_OVERRIDE = (
     u"__version__ = %r\n"
     u"__author__ = %r\n"
 )
+
+MAX_MESSAGE_SIZE = 4096 * 1048576
 
 worker_model_msg = (
     'Mitogen connection types may only be instantiated when one of the '
@@ -246,24 +248,42 @@ def increase_open_file_limit():
     limit is much higher.
     """
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-    if soft < hard:
-        LOG.debug('raising soft open file limit from %d to %d', soft, hard)
-        resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+    if hard == resource.RLIM_INFINITY:
+        hard_s = '(infinity)'
+        # cap in case of O(RLIMIT_NOFILE) algorithm in some subprocess.
+        hard = 524288
     else:
-        LOG.debug('cannot increase open file limit; existing limit is %d', hard)
+        hard_s = str(hard)
+
+    LOG.debug('inherited open file limits: soft=%d hard=%s', soft, hard_s)
+    if soft >= hard:
+        LOG.debug('max open files already set to hard limit: %d', hard)
+        return
+
+    # OS X is limited by kern.maxfilesperproc sysctl, rather than the
+    # advertised unlimited hard RLIMIT_NOFILE. Just hard-wire known defaults
+    # for that sysctl, to avoid the mess of querying it.
+    for value in (hard, 10240):
+        try:
+            resource.setrlimit(resource.RLIMIT_NOFILE, (value, hard))
+            LOG.debug('raised soft open file limit from %d to %d', soft, value)
+            break
+        except ValueError as e:
+            LOG.debug('could not raise soft open file limit from %d to %d: %s',
+                      soft, value, e)
 
 
 def common_setup(enable_affinity=True, _init_logging=True):
     save_pid('controller')
     ansible_mitogen.logging.set_process_name('top')
 
+    if _init_logging:
+        ansible_mitogen.logging.setup()
+
     if enable_affinity:
         ansible_mitogen.affinity.policy.assign_controller()
 
     mitogen.utils.setup_gil()
-    if _init_logging:
-        ansible_mitogen.logging.setup()
-
     if faulthandler is not None:
         faulthandler.enable()
 
@@ -292,6 +312,15 @@ def get_cpu_count(default=None):
         cpu_count = default
 
     return cpu_count
+
+
+class Broker(mitogen.master.Broker):
+    """
+    WorkerProcess maintains at most 2 file descriptors, therefore does not need
+    the exuberant syscall expense of EpollPoller, so override it and restore
+    the poll() poller.
+    """
+    poller_class = mitogen.core.Poller
 
 
 class Binding(object):
@@ -332,6 +361,11 @@ class Binding(object):
 
 
 class WorkerModel(object):
+    """
+    Interface used by StrategyMixin to manage various Mitogen services, by
+    default running in one or more connection multiplexer subprocesses spawned
+    off the top-level Ansible process.
+    """
     def on_strategy_start(self):
         """
         Called prior to strategy start in the top-level process. Responsible
@@ -348,6 +382,11 @@ class WorkerModel(object):
         raise NotImplementedError()
 
     def get_binding(self, inventory_name):
+        """
+        Return a :class:`Binding` to access Mitogen services for
+        `inventory_name`. Usually called from worker processes, but may also be
+        called from top-level process to handle "meta: reset_connection".
+        """
         raise NotImplementedError()
 
 
@@ -379,6 +418,18 @@ class ClassicBinding(Binding):
 
 
 class ClassicWorkerModel(WorkerModel):
+    #: In the top-level process, this references one end of a socketpair(),
+    #: whose other end child MuxProcesses block reading from to determine when
+    #: the master process dies. When the top-level exits abnormally, or
+    #: normally but where :func:`_on_process_exit` has been called, this socket
+    #: will be closed, causing all the children to wake.
+    parent_sock = None
+
+    #: In the mux process, this is the other end of :attr:`cls_parent_sock`.
+    #: The main thread blocks on a read from it until :attr:`cls_parent_sock`
+    #: is closed.
+    child_sock = None
+
     #: mitogen.master.Router for this worker.
     router = None
 
@@ -394,20 +445,47 @@ class ClassicWorkerModel(WorkerModel):
     parent = None
 
     def __init__(self, _init_logging=True):
-        self._init_logging = _init_logging
-        self.initialized = False
+        """
+        Arrange for classic model multiplexers to be started. The parent choses
+        UNIX socket paths each child will use prior to fork, creates a
+        socketpair used essentially as a semaphore, then blocks waiting for the
+        child to indicate the UNIX socket is ready for use.
+
+        :param bool _init_logging:
+            For testing, if :data:`False`, don't initialize logging.
+        """
+        # #573: The process ID that installed the :mod:`atexit` handler. If
+        # some unknown Ansible plug-in forks the Ansible top-level process and
+        # later performs a graceful Python exit, it may try to wait for child
+        # PIDs it never owned, causing a crash. We want to avoid that.
+        self._pid = os.getpid()
+
+        common_setup(_init_logging=_init_logging)
+
+        self.parent_sock, self.child_sock = socket.socketpair()
+        mitogen.core.set_cloexec(self.parent_sock.fileno())
+        mitogen.core.set_cloexec(self.child_sock.fileno())
+
+        self._muxes = [
+            MuxProcess(self, index)
+            for index in range(get_cpu_count(default=1))
+        ]
+        for mux in self._muxes:
+            mux.start()
+
+        atexit.register(self._on_process_exit)
+        self.child_sock.close()
+        self.child_sock = None
 
     def _listener_for_name(self, name):
         """
         Given an inventory hostname, return the UNIX listener that should
         communicate with it. This is a simple hash of the inventory name.
         """
-        if len(self._muxes) == 1:
-            return self._muxes[0].path
-
-        idx = abs(hash(name)) % len(self._muxes)
-        LOG.debug('Picked worker %d: %s', idx, self._muxes[idx].path)
-        return self._muxes[idx].path
+        mux = self._muxes[abs(hash(name)) % len(self._muxes)]
+        LOG.debug('will use multiplexer %d (%s) to connect to "%s"',
+                  mux.index, mux.path, name)
+        return mux.path
 
     def _reconnect(self, path):
         if self.router is not None:
@@ -427,98 +505,57 @@ class ClassicWorkerModel(WorkerModel):
             # with_items loops.
             raise ansible.errors.AnsibleError(shutting_down_msg % (e,))
 
+        self.router.max_message_size = MAX_MESSAGE_SIZE
         self.listener_path = path
 
-    def on_process_exit(self, sock):
+    def _on_process_exit(self):
         """
         This is an :mod:`atexit` handler installed in the top-level process.
 
         Shut the write end of `sock`, causing the receive side of the socket in
-        every worker process to return 0-byte reads, and causing their main
-        threads to wake and initiate shutdown. After shutting the socket down,
-        wait on each child to finish exiting.
+        every :class:`MuxProcess` to return 0-byte reads, and causing their
+        main threads to wake and initiate shutdown. After shutting the socket
+        down, wait on each child to finish exiting.
 
         This is done using :mod:`atexit` since Ansible lacks any better hook to
         run code during exit, and unless some synchronization exists with
         MuxProcess, debug logs may appear on the user's terminal *after* the
         prompt has been printed.
         """
-        try:
-            sock.shutdown(socket.SHUT_WR)
-        except socket.error:
-            # Already closed. This is possible when tests are running.
-            LOG.debug('on_process_exit: ignoring duplicate call')
+        if self._pid != os.getpid():
             return
 
-        mitogen.core.io_op(sock.recv, 1)
-        sock.close()
+        try:
+            self.parent_sock.shutdown(socket.SHUT_WR)
+        except socket.error:
+            # Already closed. This is possible when tests are running.
+            LOG.debug('_on_process_exit: ignoring duplicate call')
+            return
+
+        mitogen.core.io_op(self.parent_sock.recv, 1)
+        self.parent_sock.close()
 
         for mux in self._muxes:
             _, status = os.waitpid(mux.pid, 0)
             status = mitogen.fork._convert_exit_status(status)
-            LOG.debug('mux %d PID %d %s', mux.index, mux.pid,
+            LOG.debug('multiplexer %d PID %d %s', mux.index, mux.pid,
                       mitogen.parent.returncode_to_str(status))
-
-    def _initialize(self):
-        """
-        Arrange for classic model multiplexers to be started, if they are not
-        already running.
-
-        The parent process picks a UNIX socket path each child will use prior
-        to fork, creates a socketpair used essentially as a semaphore, then
-        blocks waiting for the child to indicate the UNIX socket is ready for
-        use.
-
-        :param bool _init_logging:
-            For testing, if :data:`False`, don't initialize logging.
-        """
-        common_setup(_init_logging=self._init_logging)
-
-        MuxProcess.cls_parent_sock, \
-        MuxProcess.cls_child_sock = socket.socketpair()
-        mitogen.core.set_cloexec(MuxProcess.cls_parent_sock.fileno())
-        mitogen.core.set_cloexec(MuxProcess.cls_child_sock.fileno())
-
-        self._muxes = [
-            MuxProcess(index)
-            for index in range(get_cpu_count(default=1))
-        ]
-        for mux in self._muxes:
-            mux.start()
-
-        atexit.register(self.on_process_exit, MuxProcess.cls_parent_sock)
-        MuxProcess.cls_child_sock.close()
-        MuxProcess.cls_child_sock = None
 
     def _test_reset(self):
         """
         Used to clean up in unit tests.
         """
-        # TODO: split this up a bit.
-        global _classic_worker_model
-        assert MuxProcess.cls_parent_sock is not None
-        MuxProcess.cls_parent_sock.close()
-        MuxProcess.cls_parent_sock = None
-        self.listener_path = None
-        self.router = None
-        self.parent = None
-
-        for mux in self._muxes:
-            pid, status = os.waitpid(mux.pid, 0)
-            status = mitogen.fork._convert_exit_status(status)
-            LOG.debug('mux PID %d %s', pid,
-                mitogen.parent.returncode_to_str(status))
-
-        _classic_worker_model = None
+        self.on_binding_close()
+        self._on_process_exit()
         set_worker_model(None)
+
+        global _classic_worker_model
+        _classic_worker_model = None
 
     def on_strategy_start(self):
         """
         See WorkerModel.on_strategy_start().
         """
-        if not self.initialized:
-            self._initialize()
-            self.initialized = True
 
     def on_strategy_complete(self):
         """
@@ -530,7 +567,7 @@ class ClassicWorkerModel(WorkerModel):
         See WorkerModel.get_binding().
         """
         if self.broker is None:
-            self.broker = mitogen.master.Broker()
+            self.broker = Broker()
 
         path = self._listener_for_name(inventory_name)
         if path != self.listener_path:
@@ -546,8 +583,8 @@ class ClassicWorkerModel(WorkerModel):
         self.broker.join()
         self.router = None
         self.broker = None
+        self.parent = None
         self.listener_path = None
-        self.initialized = False
 
         # #420: Ansible executes "meta" actions in the top-level process,
         # meaning "reset_connection" will cause :class:`mitogen.core.Latch` FDs
@@ -578,25 +615,16 @@ class MuxProcess(object):
     See https://bugs.python.org/issue6721 for a thorough description of the
     class of problems this worker is intended to avoid.
     """
-    #: In the top-level process, this references one end of a socketpair(),
-    #: whose other end child MuxProcesses block reading from to determine when
-    #: the master process dies. When the top-level exits abnormally, or
-    #: normally but where :func:`on_process_exit` has been called, this socket
-    #: will be closed, causing all the children to wake.
-    cls_parent_sock = None
-
-    #: In the mux process, this is the other end of :attr:`cls_parent_sock`.
-    #: The main thread blocks on a read from it until :attr:`cls_parent_sock`
-    #: is closed.
-    cls_child_sock = None
-
     #: A copy of :data:`os.environ` at the time the multiplexer process was
     #: started. It's used by mitogen_local.py to find changes made to the
     #: top-level environment (e.g. vars plugins -- issue #297) that must be
     #: applied to locally executed commands and modules.
     cls_original_env = None
 
-    def __init__(self, index):
+    def __init__(self, model, index):
+        #: :class:`ClassicWorkerModel` instance we were created by.
+        self.model = model
+        #: MuxProcess CPU index.
         self.index = index
         #: Individual path of this process.
         self.path = mitogen.unix.make_socket_path()
@@ -605,7 +633,7 @@ class MuxProcess(object):
         self.pid = os.fork()
         if self.pid:
             # Wait for child to boot before continuing.
-            mitogen.core.io_op(MuxProcess.cls_parent_sock.recv, 1)
+            mitogen.core.io_op(self.model.parent_sock.recv, 1)
             return
 
         ansible_mitogen.logging.set_process_name('mux:' + str(self.index))
@@ -615,8 +643,8 @@ class MuxProcess(object):
                 os.path.basename(self.path),
             ))
 
-        MuxProcess.cls_parent_sock.close()
-        MuxProcess.cls_parent_sock = None
+        self.model.parent_sock.close()
+        self.model.parent_sock = None
         try:
             try:
                 self.worker_main()
@@ -632,6 +660,12 @@ class MuxProcess(object):
         connected to the parent to be closed (indicating the parent has died).
         """
         save_pid('mux')
+
+        # #623: MuxProcess ignores SIGINT because it wants to live until every
+        # Ansible worker process has been cleaned up by
+        # TaskQueueManager.cleanup(), otherwise harmles yet scary warnings
+        # about being unable connect to MuxProess could be printed.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         ansible_mitogen.logging.set_process_name('mux')
         ansible_mitogen.affinity.policy.assign_muxprocess(self.index)
 
@@ -640,9 +674,9 @@ class MuxProcess(object):
 
         try:
             # Let the parent know our listening socket is ready.
-            mitogen.core.io_op(self.cls_child_sock.send, b('1'))
+            mitogen.core.io_op(self.model.child_sock.send, b('1'))
             # Block until the socket is closed, which happens on parent exit.
-            mitogen.core.io_op(self.cls_child_sock.recv, 1)
+            mitogen.core.io_op(self.model.child_sock.recv, 1)
         finally:
             self.broker.shutdown()
             self.broker.join()
@@ -668,11 +702,11 @@ class MuxProcess(object):
         self.broker = mitogen.master.Broker(install_watcher=False)
         self.router = mitogen.master.Router(
             broker=self.broker,
-            max_message_size=4096 * 1048576,
+            max_message_size=MAX_MESSAGE_SIZE,
         )
         _setup_responder(self.router.responder)
-        mitogen.core.listen(self.broker, 'shutdown', self.on_broker_shutdown)
-        mitogen.core.listen(self.broker, 'exit', self.on_broker_exit)
+        mitogen.core.listen(self.broker, 'shutdown', self._on_broker_shutdown)
+        mitogen.core.listen(self.broker, 'exit', self._on_broker_exit)
         self.listener = mitogen.unix.Listener.build_stream(
             router=self.router,
             path=self.path,
@@ -692,26 +726,20 @@ class MuxProcess(object):
         )
         setup_pool(self.pool)
 
-    def on_broker_shutdown(self):
+    def _on_broker_shutdown(self):
         """
-        Respond to broker shutdown by beginning service pool shutdown. Do not
-        join on the pool yet, since that would block the broker thread which
-        then cannot clean up pending handlers, which is required for the
-        threads to exit gracefully.
+        Respond to broker shutdown by shutting down the pool. Do not join on it
+        yet, since that would block the broker thread which then cannot clean
+        up pending handlers and connections, which is required for the threads
+        to exit gracefully.
         """
-        # In normal operation we presently kill the process because there is
-        # not yet any way to cancel connect().
-        self.pool.stop(join=self.profiling)
+        self.pool.stop(join=False)
 
-    def on_broker_exit(self):
+    def _on_broker_exit(self):
         """
-        Respond to the broker thread about to exit by sending SIGTERM to
-        ourself. In future this should gracefully join the pool, but TERM is
-        fine for now.
+        Respond to the broker thread about to exit by finally joining on the
+        pool. This is safe since pools only block in connection attempts, and
+        connection attempts fail with CancelledError when broker shutdown
+        begins.
         """
-        if not os.environ.get('MITOGEN_PROFILING'):
-            # In normal operation we presently kill the process because there is
-            # not yet any way to cancel connect(). When profiling, threads
-            # including the broker must shut down gracefully, otherwise pstats
-            # won't be written.
-            os.kill(os.getpid(), signal.SIGTERM)
+        self.pool.join()

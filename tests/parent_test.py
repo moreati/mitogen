@@ -12,6 +12,7 @@ import unittest2
 import testlib
 from testlib import Popen__terminate
 
+import mitogen.core
 import mitogen.parent
 
 try:
@@ -21,8 +22,8 @@ except NameError:
 
 
 def wait_for_child(pid, timeout=1.0):
-    deadline = time.time() + timeout
-    while timeout < time.time():
+    deadline = mitogen.core.now() + timeout
+    while timeout < mitogen.core.now():
         try:
             target_pid, status = os.waitpid(pid, os.WNOHANG)
             if target_pid == pid:
@@ -209,37 +210,6 @@ class OpenPtyTest(testlib.TestCase):
         finally:
             master_fp.close()
             slave_fp.close()
-
-
-class TtyCreateChildTest(testlib.TestCase):
-    func = staticmethod(mitogen.parent.tty_create_child)
-
-    def test_dev_tty_open_succeeds(self):
-        # In the early days of UNIX, a process that lacked a controlling TTY
-        # would acquire one simply by opening an existing TTY. Linux and OS X
-        # continue to follow this behaviour, however at least FreeBSD moved to
-        # requiring an explicit ioctl(). Linux supports it, but we don't yet
-        # use it there and anyway the behaviour will never change, so no point
-        # in fixing things that aren't broken. Below we test that
-        # getpass-loving apps like sudo and ssh get our slave PTY when they
-        # attempt to open /dev/tty, which is what they both do on attempting to
-        # read a password.
-        tf = tempfile.NamedTemporaryFile()
-        try:
-            proc = self.func([
-                'bash', '-c', 'exec 2>%s; echo hi > /dev/tty' % (tf.name,)
-            ])
-            deadline = time.time() + 5.0
-            mitogen.core.set_block(proc.stdin.fileno())
-            # read(3) below due to https://bugs.python.org/issue37696
-            self.assertEquals(mitogen.core.b('hi\n'), proc.stdin.read(3))
-            waited_pid, status = os.waitpid(proc.pid, 0)
-            self.assertEquals(proc.pid, waited_pid)
-            self.assertEquals(0, status)
-            self.assertEquals(mitogen.core.b(''), tf.read())
-            proc.stdout.close()
-        finally:
-            tf.close()
 
 
 class DisconnectTest(testlib.RouterMixin, testlib.TestCase):

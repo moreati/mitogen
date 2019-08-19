@@ -107,11 +107,11 @@ def wait_for_port(
     If a regex pattern is supplied try to find it in the initial data.
     Return None on success, or raise on error.
     """
-    start = time.time()
+    start = mitogen.core.now()
     end = start + overall_timeout
     addr = (host, port)
 
-    while time.time() < end:
+    while mitogen.core.now() < end:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(connect_timeout)
         try:
@@ -130,7 +130,7 @@ def wait_for_port(
         sock.settimeout(receive_timeout)
         data = mitogen.core.b('')
         found = False
-        while time.time() < end:
+        while mitogen.core.now() < end:
             try:
                 resp = sock.recv(1024)
             except socket.timeout:
@@ -192,7 +192,7 @@ def sync_with_broker(broker, timeout=10.0):
     """
     sem = mitogen.core.Latch()
     broker.defer(sem.put, None)
-    sem.get(timeout=10.0)
+    sem.get(timeout=timeout)
 
 
 def log_fd_calls():
@@ -338,7 +338,7 @@ class TestCase(unittest2.TestCase):
     def _teardown_check_fds(self):
         mitogen.core.Latch._on_fork()
         if get_fd_count() != self._fd_count_before:
-            import os; os.system('lsof -w -p %s' % (os.getpid(),))
+            import os; os.system('lsof +E -w -p %s | grep -vw mem' % (os.getpid(),))
             assert 0, "%s leaked FDs. Count before: %s, after: %s" % (
                 self, self._fd_count_before, get_fd_count(),
             )
@@ -427,6 +427,11 @@ class DockerizedSshDaemon(object):
             raise ValueError('could not find SSH port in: %r' % (s,))
 
     def start_container(self):
+        try:
+            subprocess__check_output(['docker', '--version'])
+        except Exception:
+            raise unittest2.SkipTest('Docker binary is unavailable')
+
         self.container_name = 'mitogen-test-%08x' % (random.getrandbits(64),)
         args = [
             'docker',
@@ -448,6 +453,22 @@ class DockerizedSshDaemon(object):
 
     def wait_for_sshd(self):
         wait_for_port(self.get_host(), self.port, pattern='OpenSSH')
+
+    def check_processes(self):
+        args = ['docker', 'exec', self.container_name, 'ps', '-o', 'comm=']
+        counts = {}
+        for comm in subprocess__check_output(args).decode().splitlines():
+            comm = comm.strip()
+            counts[comm] = counts.get(comm, 0) + 1
+
+        if counts != {'ps': 1, 'sshd': 1}:
+            assert 0, (
+                'Docker container %r contained extra running processes '
+                'after test completed: %r' % (
+                    self.container_name,
+                    counts
+                )
+            )
 
     def close(self):
         args = ['docker', 'rm', '-f', self.container_name]
@@ -496,6 +517,7 @@ class DockerMixin(RouterMixin):
 
     @classmethod
     def tearDownClass(cls):
+        cls.dockerized_ssh.check_processes()
         cls.dockerized_ssh.close()
         super(DockerMixin, cls).tearDownClass()
 
