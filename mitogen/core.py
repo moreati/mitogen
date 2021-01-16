@@ -3979,11 +3979,11 @@ class ExternalContext(object):
                                  os.getuid(), os.getegid(), os.getgid(),
                                  socket.gethostname())
 
-                sys.executable = os.environ.pop('ARGV0', sys.executable)
+                sys.executable = os.environ.pop('mitogen0', sys.executable)
                 _v and LOG.debug('Recovered sys.executable: %r', sys.executable)
 
                 if self.config.get('send_ec2', True):
-                    self.stream.transmit_side.write(b('MITO002\n'))
+                    self.stream.transmit_side.write(b('mitogen2\n'))
                 self.broker._py24_25_compat()
                 self.log_handler.uncork()
                 self.dispatcher.run()

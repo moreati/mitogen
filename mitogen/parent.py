@@ -1205,9 +1205,9 @@ class BootstrapProtocol(RegexProtocol):
     #: Sentinel value emitted by the first stage to indicate it is ready to
     #: receive the compressed bootstrap. For :mod:`mitogen.ssh` this must have
     #: length of at least `max(len('password'), len('debug1:'))`
-    EC0_MARKER = b('MITO000')
-    EC1_MARKER = b('MITO001')
-    EC2_MARKER = b('MITO002')
+    EC0_MARKER = b('mitogen0')
+    EC1_MARKER = b('mitogen1')
+    EC2_MARKER = b('mitogen2')
 
     def __init__(self, broker):
         super(BootstrapProtocol, self).__init__()
@@ -1437,20 +1437,18 @@ class Connection(object):
             os.close(w)
             # this doesn't apply anymore to Mac OSX 10.15+ (Darwin 19+), new interpreter looks like this:
             # /System/Library/Frameworks/Python.framework/Versions/2.7/Resources/Python.app/Contents/MacOS/Python
-            if sys.platform == 'darwin' and sys.executable == '/usr/bin/python' and \
-                    int(platform.release()[:2]) < 19:
-                sys.executable += sys.version[:3]
-            os.environ['ARGV0']=sys.executable
+            if os.uname()[2][:2]<'19'and'/usr/bin/pythonDarwin'==sys.executable+os.uname()[0]:sys.executable+=sys.version[:3]
+            os.environ['mitogen0']=sys.executable
             os.execl(sys.executable,sys.executable+'(mitogen:CONTEXT_NAME)')
-        os.write(1,'MITO000\n'.encode())
-        C=_(os.fdopen(0,'rb').read(PREAMBLE_COMPRESSED_LEN),'zip')
-        fp=os.fdopen(W,'wb',0)
-        fp.write(C)
-        fp.close()
-        fp=os.fdopen(w,'wb',0)
-        fp.write(C)
-        fp.close()
-        os.write(1,'MITO001\n'.encode())
+        os.write(1,'mitogen0\n'.encode())
+        _=_(os.fdopen(0,'rb').read(PREAMBLE_COMPRESSED_LEN),'zip')
+        f=os.fdopen(W,'wb')
+        f.write(_)
+        f.close()
+        f=os.fdopen(w,'wb')
+        f.write(_)
+        f.close()
+        os.write(1,'mitogen1\n'.encode())
         os.close(2)
 
     def get_python_argv(self):
@@ -1468,7 +1466,7 @@ class Connection(object):
 
     def get_boot_command(self):
         source = inspect.getsource(self._first_stage)
-        source = textwrap.dedent('\n'.join(source.strip().split('\n')[2:]))
+        source = textwrap.dedent('\n'.join( [line for line in source.strip().split('\n') if not re.match(r'^ *#',line)][2:] ))
         source = source.replace('    ', '\t')
         source = source.replace('CONTEXT_NAME', self.options.remote_name)
         preamble_compressed = self.get_preamble()

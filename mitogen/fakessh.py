@@ -446,7 +446,7 @@ def run(dest, router, args, deadline=None, econtext=None):
         env = os.environ.copy()
         env.update({
             'PATH': '%s:%s' % (tmp_path, env.get('PATH', '')),
-            'ARGV0': mitogen.parent.get_sys_executable(),
+            'mitogen0': mitogen.parent.get_sys_executable(),
             'SSH_PATH': ssh_path,
         })
 
