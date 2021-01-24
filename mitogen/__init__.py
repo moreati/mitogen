@@ -34,8 +34,10 @@ be expected. On the slave, it is built dynamically during startup.
 """
 
 
-#: Library version as a tuple.
-__version__ = (0, 3, "0-rc.0")
+#: Library version as a string.
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
 
 
 #: This is :data:`False` in slave contexts. Previously it was used to prevent

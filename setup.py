@@ -26,27 +26,19 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os
-
 from setuptools import find_packages, setup
 
-
-def grep_version():
-    path = os.path.join(os.path.dirname(__file__), 'mitogen/__init__.py')
-    with open(path) as fp:
-        for line in fp:
-            if line.startswith('__version__'):
-                _, _, s = line.partition('=')
-                return '.'.join(map(str, eval(s)))
+import versioneer
 
 
 setup(
     name = 'mitogen',
-    version = grep_version(),
+    version = versioneer.get_version(),
     description = 'Library for writing distributed self-replicating programs.',
     author = 'David Wilson',
     license = 'New BSD',
     url = 'https://github.com/dw/mitogen/',
+    cmdclass = versioneer.get_cmdclass(),
     packages = find_packages(exclude=['tests', 'examples']),
     zip_safe = False,
     classifiers = [

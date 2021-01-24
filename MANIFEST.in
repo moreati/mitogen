@@ -1,1 +1,3 @@
 include LICENSE
+include mitogen/_version.py
+include versioneer.py
