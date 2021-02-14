@@ -3,15 +3,27 @@
 
 - shell: uname -s
   register: out
+  check_mode: false
+  changed_when: false
+  tags:
+    - always
 
 - meta: end_play
   when: out.stdout != 'Linux'
+  tags:
+    - always
 
 - command: sudo -n whoami
   args:
     warn: false
   ignore_errors: true
   register: sudo_available
+  check_mode: false
+  changed_when: false
+  tags:
+    - always
 
 - meta: end_play
   when: sudo_available.rc != 0
+  tags:
+    - always

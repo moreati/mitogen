@@ -1,0 +1,28 @@
+# issue #803 cx_Oracle is blacklisted after installationon Mitogen master
+---
+- name: regression/issue_803__cx_Oracle_import.yml
+  any_errors_fatal: true
+  hosts: test-targets
+  tasks:
+    - name: Install pip
+      become: true
+      apt:
+        name:
+          - python3-pip
+        state: present
+    - name: Install cx_Oracle
+      become: true
+      pip:
+        name:
+          - cx_Oracle>=8.0.1,<8.1; python_version < '3.6'
+          - cx_Oracle>=8.1; python_version >= '3.6'
+        executable: pip3
+        #virtualenv: /tmp/issue_803
+        #virtualenv_python: python3
+    - script:
+        cmd: scripts/issue_803
+        #executable: /tmp/issue_803/bin/python3
+      register: issue_803_result
+    - cx_Oracle_version:
+  tags:
+    - issue_803

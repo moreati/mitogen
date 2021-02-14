@@ -13,3 +13,4 @@
 - include: issue_591__setuptools_cwd_crash.yml
 - include: issue_615__streaming_transfer.yml
 - include: issue_655__wait_for_connection_error.yml
+- include: issue_803__cx_Oracle_import.yml

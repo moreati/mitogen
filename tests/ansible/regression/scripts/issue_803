@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+
+import cx_Oracle
+
+print('cx_Oracle.version', cx_Oracle.version)
