@@ -328,7 +328,7 @@ class Spec(with_metaclass(abc.ABCMeta, object)):
     @abc.abstractmethod
     def mitogen_kubectl_path(self):
         """
-        The path to the "kubectl" program for the 'docker' transport.
+        The path to the "kubectl" program for the 'kubectl' transport.
         """
 
     @abc.abstractmethod

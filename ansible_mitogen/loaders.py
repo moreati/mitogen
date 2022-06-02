@@ -89,12 +89,28 @@ def assert_supported_release():
 assert_supported_release()
 
 
-from ansible.plugins.loader import action_loader
-from ansible.plugins.loader import connection_loader
-from ansible.plugins.loader import module_loader
-from ansible.plugins.loader import module_utils_loader
-from ansible.plugins.loader import shell_loader
-from ansible.plugins.loader import strategy_loader
+from ansible.plugins.loader import (
+    action_loader,
+    #become_loader
+    #cache_loader,
+    #callback_loader,
+    #cliconf_loader,
+    connection_loader,
+    #filter_loader,
+    #fragment_loader,
+    #httpapi_loader,
+    #inventory_loader,
+    module_loader,
+    module_utils_loader,
+    #netconf_loader,
+    #ps_module_utils_loader,
+    #lookup_loader,
+    shell_loader,
+    strategy_loader,
+    #test_loader,
+    #terminal_loader,
+    #vars_loader,
+)
 
 # These are original, unwrapped implementations
 action_loader__get = action_loader.get

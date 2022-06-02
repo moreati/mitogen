@@ -352,7 +352,6 @@ def start_containers(containers):
                 # "--cpuset-cpus 0,1 "
                 "--detach "
                 "--privileged "
-                "--cap-add=SYS_PTRACE "
                 "--publish 0.0.0.0:%(port)s:22/tcp "
                 "--hostname=%(name)s "
                 "--name=%(name)s "

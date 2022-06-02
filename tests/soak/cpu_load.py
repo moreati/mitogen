@@ -19,7 +19,7 @@ def burn():
                  (ord(b) << 8) |
                  (ord(c) << 0)) / 1.6)
         print(n)
-        for x in xrange(n): pass
+        for x in range(n): pass
         sched_yield()
 
 mul = 1.5

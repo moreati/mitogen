@@ -29,7 +29,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-import os.path
+import os
 import sys
 
 try:
@@ -42,13 +42,7 @@ except ImportError:
 import ansible_mitogen.connection
 import ansible_mitogen.process
 
-
-if sys.version_info > (3,):
-    viewkeys = dict.keys
-elif sys.version_info > (2, 7):
-    viewkeys = dict.viewkeys
-else:
-    viewkeys = lambda dct: set(dct)
+from ansible.module_utils.six import viewkeys
 
 
 def dict_diff(old, new):

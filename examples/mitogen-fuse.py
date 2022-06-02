@@ -6,8 +6,9 @@
 # some functionality (#213) to make that easy. Additionally it needs a set of
 # Python bindings for FUSE that stupidly require use of a thread pool.
 
-from __future__ import absolute_import, division
+from __future__ import absolute_import, division, print_function
 from __future__ import unicode_literals
+__metaclass__ = type
 
 import errno
 import logging
@@ -16,8 +17,9 @@ import sys
 import time
 
 import fuse
+
+import mitogen
 import mitogen.master
-import mitogen.utils
 
 import __main__
 import os

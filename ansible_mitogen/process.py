@@ -61,11 +61,10 @@ import mitogen.utils
 import ansible
 import ansible.constants as C
 import ansible.errors
+
+import ansible_mitogen.affinity
 import ansible_mitogen.logging
 import ansible_mitogen.services
-
-from mitogen.core import b
-import ansible_mitogen.affinity
 
 
 LOG = logging.getLogger(__name__)
@@ -180,42 +179,6 @@ def setup_pool(pool):
     LOG.debug('Service pool configured: size=%d', pool.size)
 
 
-def _setup_simplejson(responder):
-    """
-    We support serving simplejson for Python 2.4 targets on Ansible 2.3, at
-    least so the package's own CI Docker scripts can run without external
-    help, however newer versions of simplejson no longer support Python
-    2.4. Therefore override any installed/loaded version with a
-    2.4-compatible version we ship in the compat/ directory.
-    """
-    responder.whitelist_prefix('simplejson')
-
-    # issue #536: must be at end of sys.path, in case existing newer
-    # version is already loaded.
-    compat_path = os.path.join(os.path.dirname(__file__), 'compat')
-    sys.path.append(compat_path)
-
-    for fullname, is_pkg, suffix in (
-        (u'simplejson', True, '__init__.py'),
-        (u'simplejson.decoder', False, 'decoder.py'),
-        (u'simplejson.encoder', False, 'encoder.py'),
-        (u'simplejson.scanner', False, 'scanner.py'),
-    ):
-        path = os.path.join(compat_path, 'simplejson', suffix)
-        fp = open(path, 'rb')
-        try:
-            source = fp.read()
-        finally:
-            fp.close()
-
-        responder.add_source_override(
-            fullname=fullname,
-            path=path,
-            source=source,
-            is_pkg=is_pkg,
-        )
-
-
 def _setup_responder(responder):
     """
     Configure :class:`mitogen.master.ModuleResponder` to only permit
@@ -223,7 +186,6 @@ def _setup_responder(responder):
     """
     responder.whitelist_prefix('ansible')
     responder.whitelist_prefix('ansible_mitogen')
-    _setup_simplejson(responder)
 
     # Ansible 2.3 is compatible with Python 2.4 targets, however
     # ansible/__init__.py is not. Instead, executor/module_common.py writes
@@ -676,7 +638,7 @@ class MuxProcess(object):
 
         try:
             # Let the parent know our listening socket is ready.
-            mitogen.core.io_op(self.model.child_sock.send, b('1'))
+            mitogen.core.io_op(self.model.child_sock.send, b'1')
             # Block until the socket is closed, which happens on parent exit.
             mitogen.core.io_op(self.model.child_sock.recv, 1)
         finally:

@@ -47,5 +47,9 @@ for th in allc+allp:
     th.setDaemon(True)
     th.start()
 
-raw_input()
+try:
+    raw_input()
+except NameError:
+    input()
+
 exit()

@@ -11,15 +11,17 @@ version will extend it to:
 
 """
 
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 import curses
 import subprocess
 import sys
 import time
 
+import mitogen
 import mitogen.core
-import mitogen.master
 import mitogen.select
-import mitogen.utils
 
 
 class Host(object):

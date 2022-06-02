@@ -38,6 +38,8 @@ __metaclass__ = type
 
 import errno
 import grp
+import json
+import logging
 import operator
 import os
 import pwd
@@ -50,31 +52,12 @@ import tempfile
 import traceback
 import types
 
-# Absolute imports for <2.5.
-logging = __import__('logging')
+from ansible.module_utils.six import integer_types
+from ansible.module_utils.six.moves import reduce
 
 import mitogen.core
 import mitogen.parent
 import mitogen.service
-from mitogen.core import b
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
-
-try:
-    reduce
-except NameError:
-    # Python 3.x.
-    from functools import reduce
-
-try:
-    BaseException
-except NameError:
-    # Python 2.4
-    BaseException = Exception
-
 
 # Ansible since PR #41749 inserts "import __main__" into
 # ansible.module_utils.basic. Mitogen's importer will refuse such an import, so
@@ -371,11 +354,6 @@ def init_child(econtext, log_level, candidate_temp_dirs):
     LOG.setLevel(log_level)
     logging.getLogger('ansible_mitogen').setLevel(log_level)
 
-    # issue #536: if the json module is available, remove simplejson from the
-    # importer whitelist to avoid confusing certain Ansible modules.
-    if json.__name__ == 'json':
-        econtext.importer.whitelist.remove('simplejson')
-
     global _fork_parent
     if FORK_SUPPORTED:
         mitogen.parent.upgrade_router(econtext)
@@ -624,8 +602,8 @@ def exec_args(args, in_data='', chdir=None, shell=None, emulate_tty=False):
     stdout, stderr = proc.communicate(in_data)
 
     if emulate_tty:
-        stdout = stdout.replace(b('\n'), b('\r\n'))
-    return proc.returncode, stdout, stderr or b('')
+        stdout = stdout.replace(b'\n', b'\r\n')
+    return proc.returncode, stdout, stderr or b''
 
 
 def exec_command(cmd, in_data='', chdir=None, shell=None, emulate_tty=False):
@@ -755,9 +733,7 @@ def set_file_mode(path, spec, fd=None):
     """
     Update the permissions of a file using the same syntax as chmod(1).
     """
-    if isinstance(spec, int):
-        new_mode = spec
-    elif not mitogen.core.PY3 and isinstance(spec, long):
+    if isinstance(spec, integer_types):
         new_mode = spec
     elif spec.isdigit():
         new_mode = int(spec, 8)
