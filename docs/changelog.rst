@@ -20,6 +20,7 @@ To avail of fixes in an unreleased version, please download a ZIP file
 Unreleased
 ----------
 
+* :gh:issue:`998` SSH: Added support for TOTP password prompts (i.e. 'Verification code: '), as used by google-authenticator-libpam
 
 v0.3.4 (2023-07-02)
 -------------------
