@@ -766,6 +766,10 @@ else:
     # attribute.
     _Unpickler = pickle.Unpickler
 
+# Protocol 2: supported by Python 2 & 3, slower on Python 3 (encode/decode overhead)
+# Protocol 3: only supported by Python 3.
+# See https://github.com/mitogen-hq/mitogen/issues/485
+PICKLE_PROTOCOL = 3
 
 class Message(object):
     """
@@ -895,10 +899,10 @@ class Message(object):
         """
         self = cls(**kwargs)
         try:
-            self.data = pickle__dumps(obj, protocol=2)
+            self.data = pickle__dumps(obj, protocol=PICKLE_PROTOCOL)
         except pickle.PicklingError:
             e = sys.exc_info()[1]
-            self.data = pickle__dumps(CallError(e), protocol=2)
+            self.data = pickle__dumps(CallError(e), protocol=PICKLE_PROTOCOL)
         return self
 
     def reply(self, msg, router=None, **kwargs):
