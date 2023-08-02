@@ -774,55 +774,32 @@ class Message(object):
     :class:`mitogen.core.Router` for ingress messages, and helper methods for
     deserialization and generating replies.
     """
-    #: Integer target context ID. :class:`Router` delivers messages locally
-    #: when their :attr:`dst_id` matches :data:`mitogen.context_id`, otherwise
-    #: they are routed up or downstream.
-    dst_id = None
-
-    #: Integer source context ID. Used as the target of replies if any are
-    #: generated.
-    src_id = None
-
-    #: Context ID under whose authority the message is acting. See
-    #: :ref:`source-verification`.
-    auth_id = None
-
-    #: Integer target handle in the destination context. This is one of the
-    #: :ref:`standard-handles`, or a dynamically generated handle used to
-    #: receive a one-time reply, such as the return value of a function call.
-    handle = None
-
-    #: Integer target handle to direct any reply to this message. Used to
-    #: receive a one-time reply, such as the return value of a function call.
-    #: :data:`IS_DEAD` has a special meaning when it appears in this field.
-    reply_to = None
-
-    #: Raw message data bytes.
-    data = b('')
-
-    _unpickled = object()
-
-    #: The :class:`Router` responsible for routing the message. This is
-    #: :data:`None` for locally originated messages.
-    router = None
-
-    #: The :class:`Receiver` over which the message was last received. Part of
-    #: the :class:`mitogen.select.Select` interface. Defaults to :data:`None`.
-    receiver = None
+    __slots__ = (
+        'dst_id', 'src_id', 'auth_id', 'handle', 'reply_to', 'data',
+        'router', 'receiver', '_unpickled',
+    )
+    _unpickled_sentinel = object()
 
     HEADER_FMT = '>hLLLLLL'
     HEADER_LEN = struct.calcsize(HEADER_FMT)
     HEADER_MAGIC = 0x4d49  # 'MI'
 
-    def __init__(self, **kwargs):
+    def __init__(self, dst_id=None, src_id=None, auth_id=None, handle=None,
+                 reply_to=None, data=b'', router=None, receiver=None):
         """
-        Construct a message from from the supplied `kwargs`. :attr:`src_id` and
-        :attr:`auth_id` are always set to :data:`mitogen.context_id`.
+        Construct a message from the args. :attr:`src_id` and :attr:`auth_id`
+        default to :data:`mitogen.context_id`.
         """
-        self.src_id = mitogen.context_id
-        self.auth_id = mitogen.context_id
-        vars(self).update(kwargs)
+        self.dst_id = dst_id
+        self.src_id = src_id if src_id is not None else mitogen.context_id
+        self.auth_id = auth_id if auth_id is not None else mitogen.context_id
+        self.handle = handle
+        self.reply_to = reply_to
+        self.data = data
         assert isinstance(self.data, BytesType), 'Message data is not Bytes'
+        self.router = router
+        self.receiver = receiver
+        self._unpickled = self._unpickled_sentinel
 
     def pack(self):
         return (
@@ -918,7 +895,7 @@ class Message(object):
             msg = Message.pickled(msg)
         msg.dst_id = self.src_id
         msg.handle = self.reply_to
-        vars(msg).update(kwargs)
+        for k, v in kwargs: setattr(self, k, v)
         if msg.handle:
             (self.router or router).route(msg)
         else:
@@ -956,7 +933,7 @@ class Message(object):
             self._throw_dead()
 
         obj = self._unpickled
-        if obj is Message._unpickled:
+        if obj is self._unpickled_sentinel:
             fp = BytesIO(self.data)
             unpickler = _Unpickler(fp, **self.UNPICKLER_KWARGS)
             unpickler.find_global = self._find_global
@@ -981,7 +958,7 @@ class Message(object):
     def __repr__(self):
         return 'Message(%r, %r, %r, %r, %r, %r..%d)' % (
             self.dst_id, self.src_id, self.auth_id, self.handle,
-            self.reply_to, (self.data or '')[:50], len(self.data)
+            self.reply_to, self.data[:50], len(self.data),
         )
 
 
