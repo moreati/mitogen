@@ -507,7 +507,7 @@ class DockerizedSshDaemon(object):
     @classmethod
     def get_port(cls, container):
         s = subprocess.check_output(['docker', 'port', container, '22/tcp'])
-        m = cls.PORT_RE.search(s)
+        m = cls.PORT_RE.search(s.decode())
         if not m:
             raise ValueError('could not find SSH port in: %r' % (s,))
         return int(m.group('port'))
