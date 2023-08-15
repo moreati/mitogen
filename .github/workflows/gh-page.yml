@@ -1,0 +1,21 @@
+name: Deploy Sphinx documentation to GitHub Pages
+
+on:
+  push:
+    branches: [ghp-gha]
+
+jobs:
+  pages:
+    runs-on: ubuntu-20.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+    - id: deployment
+      uses: sphinx-notes/pages@v3
+      with:
+        python_version: 3.8
+        sphinx_version: 2.1.2

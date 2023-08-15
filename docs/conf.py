@@ -1,7 +1,9 @@
+import pathlib
 import sys
 
-sys.path.append('..')
-sys.path.append('.')
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
+sys.path.append(str(pathlib.Path(__file__).parent))
+
 import mitogen
 VERSION = '.'.join(str(part) for part in mitogen.__version__)
 
