@@ -19,7 +19,6 @@ def _cast_to_list(obj): return [cast(v) for v in obj]
 def _cast_unsafe(obj): return obj._strip_unsafe()
 def _passthrough(obj): return obj
 
-
 # A dispatch table to cast objects based on their exact type.
 # This is an optimisation, reliable fallbacks are required (e.g. isinstance())
 _CAST_DISPATCH = {
@@ -44,7 +43,7 @@ elif ansible_mitogen.utils.ansible_version[:2] <= (2, 16):
     })
 else:
     mitogen_ver = '.'.join(str(v) for v in mitogen.__version__)
-    raise ImportError("Mitogen %s can't unwrap Ansible %s AnsibleUnsafe objects"
+    raise ImportError("Mitogen %s can't cast Ansible %s AnsibleUnsafe objects"
                       % (mitogen_ver, ansible.__version__))
 
 

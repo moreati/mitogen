@@ -40,13 +40,14 @@ try:
 except ImportError:
     from pipes import quote as shlex_quote
 
-from ansible.module_utils._text import to_bytes
-from ansible.parsing.utils.jsonify import jsonify
-
 import ansible
 import ansible.constants
+import ansible.parsing.utils.jsonify
 import ansible.plugins
 import ansible.plugins.action
+import ansible.utils.unsafe_proxy
+
+from ansible.module_utils.common.text.converters import to_bytes, to_text
 
 import mitogen.core
 import mitogen.select
@@ -245,7 +246,7 @@ class ActionModuleMixin(ansible.plugins.action.ActionBase):
         action module, and probably others.
         """
         if isinstance(data, dict):
-            data = jsonify(data)
+            data = ansible.parsing.utils.jsonify.jsonify(data)
         if not isinstance(data, bytes):
             data = to_bytes(data, errors='surrogate_or_strict')
 
@@ -404,7 +405,7 @@ class ActionModuleMixin(ansible.plugins.action.ActionBase):
 
         # prevents things like discovered_interpreter_* or ansible_discovered_interpreter_* from being set
         # handle ansible 2.3.3 that has remove_internal_keys in a different place
-        check = remove_internal_keys(result)
+        check = ansible.vars.clean.remove_internal_keys(result)
         if check == 'Not found':
             self._remove_internal_keys(result)
 
@@ -430,7 +431,7 @@ class ActionModuleMixin(ansible.plugins.action.ActionBase):
                 result['deprecations'] = []
             result['deprecations'].extend(self._discovery_deprecation_warnings)
 
-        return wrap_var(result)
+        return ansible.utils.unsafe_proxy.wrap_var(result)
 
     def _postprocess_response(self, result):
         """
