@@ -906,7 +906,6 @@ class PollPoller(mitogen.core.Poller):
     counts, as there is no setup/teardown/configuration system call overhead.
     """
     SUPPORTED = hasattr(select, 'poll')
-    _repr = 'PollPoller()'
 
     def __init__(self):
         super(PollPoller, self).__init__()
@@ -952,7 +951,6 @@ class KqueuePoller(mitogen.core.Poller):
     Poller based on the FreeBSD/Darwin :freebsd:man2:`kqueue` interface.
     """
     SUPPORTED = hasattr(select, 'kqueue')
-    _repr = 'KqueuePoller()'
 
     def __init__(self):
         super(KqueuePoller, self).__init__()
@@ -1030,7 +1028,6 @@ class EpollPoller(mitogen.core.Poller):
     Poller based on the Linux :linux:man7:`epoll` interface.
     """
     SUPPORTED = hasattr(select, 'epoll')
-    _repr = 'EpollPoller()'
 
     def __init__(self):
         super(EpollPoller, self).__init__()
@@ -1100,10 +1097,8 @@ class EpollPoller(mitogen.core.Poller):
                     yield data
 
 
-# 2.4 and 2.5 only had select.select() and select.poll().
-for _klass in mitogen.core.Poller, PollPoller, KqueuePoller, EpollPoller:
-    if _klass.SUPPORTED:
-        PREFERRED_POLLER = _klass
+POLLERS = (EpollPoller, KqueuePoller, PollPoller, mitogen.core.Poller)
+PREFERRED_POLLER = next(p for p in POLLERS if p.SUPPORTED)
 
 # For processes that start many threads or connections, it's possible Latch
 # will also get high-numbered FDs, and so select() becomes useless there too.

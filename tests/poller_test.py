@@ -398,28 +398,19 @@ class CorePollerTest(AllMixin, testlib.TestCase):
     klass = mitogen.core.Poller
 
 
+@unittest.skipIf(not mitogen.parent.PollPoller.SUPPORTED,
+                 'select.poll() not available')
 class PollTest(AllMixin, testlib.TestCase):
     klass = mitogen.parent.PollPoller
 
-PollTest = unittest.skipIf(
-    condition=(not PollTest.klass.SUPPORTED),
-    reason='select.poll() not available',
-)(PollTest)
 
-
+@unittest.skipIf(not mitogen.parent.KqueuePoller.SUPPORTED,
+                 'select.kqueue() not available')
 class KqueueTest(AllMixin, testlib.TestCase):
     klass = mitogen.parent.KqueuePoller
 
-KqueueTest = unittest.skipIf(
-    condition=(not KqueueTest.klass.SUPPORTED),
-    reason='select.kqueue() not available',
-)(KqueueTest)
 
-
+@unittest.skipIf(not mitogen.parent.EpollPoller.SUPPORTED,
+                 'select.epoll() not available')
 class EpollTest(AllMixin, testlib.TestCase):
     klass = mitogen.parent.EpollPoller
-
-EpollTest = unittest.skipIf(
-    condition=(not EpollTest.klass.SUPPORTED),
-    reason='select.epoll() not available',
-)(EpollTest)

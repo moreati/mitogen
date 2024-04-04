@@ -221,6 +221,7 @@ class MockLinuxPolicyTest(testlib.TestCase):
         for x in range(1, 4096, 32):
             policy.assign_subprocess()
 
+# FIXME https://github.com/mitogen-hq/mitogen/issues/1049
 MockLinuxPolicyTest = unittest.skipIf(
     condition=(not sys.platform.startswith('linuxPolicy')),
     reason='select.select() not supported'
