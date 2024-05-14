@@ -1,5 +1,4 @@
 # Test small transfers made via RPC.
----
 
 - name: integration/connection/put_small_file.yml
   hosts: test-targets

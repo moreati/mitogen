@@ -14,6 +14,8 @@
       shell: echo 'hi'
       environment:
         evil_key: evil
+      changed_when: false
+
     - name: Verify custom env setting is cleared, without evil_key
       custom_python_detect_environment:
       register: out

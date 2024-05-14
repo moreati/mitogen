@@ -9,6 +9,7 @@
 - name: Check MAGIC_ETC_ENV without
   shell: echo $MAGIC_ETC_ENV
   register: echo
+  changed_when: false
 
 - assert:
     that: echo.stdout == ""
@@ -17,6 +18,7 @@
 - name: Create /etc/environment
   copy:
     dest: /etc/environment
+    mode: u=rw,go=r
     content: |
       MAGIC_ETC_ENV=555
   become: true
@@ -29,6 +31,7 @@
 - name: Check MAGIC_ETC_ENV with
   shell: echo $MAGIC_ETC_ENV
   register: echo
+  changed_when: false
 
 - assert:
     that: echo.stdout == "555"
@@ -48,6 +51,7 @@
 - name: Check MAGIC_ETC_ENV without+shutdown
   shell: echo $MAGIC_ETC_ENV
   register: echo
+  changed_when: false
 
 - assert:
     that: echo.stdout == ""

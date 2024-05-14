@@ -1,5 +1,4 @@
 # https://github.com/mitogen-hq/mitogen/issues/776
----
 - name: regression/issue_776__load_plugins_called_twice.yml
   hosts: test-targets
   become: "{{ groups.linux is defined and inventory_hostname in groups.linux }}"

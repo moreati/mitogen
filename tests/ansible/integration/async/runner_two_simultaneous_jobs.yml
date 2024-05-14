@@ -1,4 +1,3 @@
-
 - name: integration/async/runner_two_simultaneous_jobs.yml
   hosts: test-targets
   tasks:

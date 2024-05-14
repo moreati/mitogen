@@ -4,7 +4,6 @@
 - name: integration/playbook_semantics/with_items.yml
   hosts: test-targets
   tasks:
-
     # TODO: https://github.com/dw/mitogen/issues/692
     # - name: Spin up a few interpreters
     #   shell: whoami

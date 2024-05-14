@@ -1,5 +1,4 @@
 # Test transfers made via FileService.
----
 
 - name: integration/connection/put_large_file.yml
   hosts: test-targets

@@ -1,4 +1,3 @@
-
 # This cannot run against localhost, it damages /etc
 
 - name: integration/glibc_caches/resolv_conf.yml

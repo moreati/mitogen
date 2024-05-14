@@ -1,5 +1,4 @@
 # Ensure paramiko connections aren't grabbed.
----
 
 - name: integration/connection_loader/paramiko_unblemished.yml
   hosts: test-targets

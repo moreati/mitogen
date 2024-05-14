@@ -1,5 +1,4 @@
 # issue #499: ensure C.BECOME_ALLOW_SAME_USER is respected.
----
 
 - name: integration/connection/become_same_user.yml
   hosts: bsu-joe

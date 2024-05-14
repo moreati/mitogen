@@ -1,24 +1,22 @@
-
 - name: integration/async/result_shell_echo_hi.yml
   gather_facts: true
   hosts: test-targets
   tasks:
-
   - name: Async shell
     shell: echo hi; echo there >&2
     async: 100
     poll: 0
     register: job
+    changed_when: false
 
   - name: Sleepy shell
     shell: sleep 1
+    changed_when: false
 
   - name: Slurp async shell
     slurp:
       src: "{{ansible_user_dir}}/.ansible_async/{{job.ansible_job_id}}"
     register: result
-
-  #- debug: msg="{{result.content|b64decode|from_json}}"
 
   - assert:
       that:

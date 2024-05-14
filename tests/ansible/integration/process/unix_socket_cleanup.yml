@@ -19,6 +19,7 @@
       chdir: ../..
     register: out
     connection: local
+    changed_when: false
     when: is_mitogen
 
   - mitogen_action_script:

@@ -7,6 +7,7 @@
     - name: "delegate_to, no sudo"
       copy:
         dest: /tmp/delegate_to.yml.txt
+        mode: u=rw,go=
         content: "Hello, world."
       register: out
       delegate_to: localhost
@@ -28,6 +29,7 @@
     - name: "connection:local, no sudo"
       copy:
         dest: /tmp/delegate_to.yml.txt
+        mode: u=rw,go=
         content: "Hello, world."
       register: out
       connection: local

@@ -1,5 +1,3 @@
----
-
 - name: Create {{ file_name }}
   shell: dd if=/dev/urandom of=/tmp/{{ file_name }} bs=1024 count={{ file_size }}
   args:
@@ -10,6 +8,7 @@
   copy:
     dest: /tmp/{{file_name}}.out
     src: /tmp/{{file_name}}
+    mode: u=rw,go=
 
 - name: Stat created {{ file_name }}
   stat: path=/tmp/{{ file_name }}

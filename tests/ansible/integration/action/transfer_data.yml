@@ -1,4 +1,3 @@
-
 - name: integration/action/transfer_data.yml
   hosts: test-targets
   tasks:

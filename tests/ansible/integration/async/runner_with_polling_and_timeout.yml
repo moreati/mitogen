@@ -12,6 +12,7 @@
     async: 1
     poll: 1
     register: job1
+    changed_when: false
 
   - assert:
       that:

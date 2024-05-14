@@ -1,4 +1,3 @@
-
 - name: integration/runner/forking_correct_parent.yml
   hosts: test-targets
   tasks:

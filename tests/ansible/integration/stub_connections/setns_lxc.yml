@@ -27,6 +27,7 @@
         chdir: ../..
         warn: "{{ False if ansible_version.full is version('2.10', '<=', strict=True) else omit }}"
       register: result
+      changed_when: false
 
     - assert:
         that: result.rc == 0

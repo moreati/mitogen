@@ -11,105 +11,105 @@
 - name: bench/loop-100-tasks.yml
   hosts: all
   tasks:
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
-    - command: hostname
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
+    - {command: hostname, changed_when: false, check_mode: false}
   tags:
     - resource_intensive

@@ -1,4 +1,3 @@
-
 - name: integration/runner/custom_python_new_style_module.yml
   hosts: test-targets
   tasks:

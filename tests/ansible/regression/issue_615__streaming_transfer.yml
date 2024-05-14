@@ -14,6 +14,8 @@
           shell: |
             dd if=/dev/zero of=/tmp/512mb.zero bs=1048576 count=512;
             chmod go= /tmp/512mb.zero
+          args:
+            creates: /tmp/512mb.zero
 
         - name: Fetch /tmp/512mb.zero
           fetch:

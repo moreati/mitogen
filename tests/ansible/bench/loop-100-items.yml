@@ -8,6 +8,8 @@
   hosts: all
   tasks:
     - command: hostname
+      changed_when: false
+      check_mode: false
       with_sequence: start=1 end="{{end|default(100)}}"
   tags:
     - resource_intensive

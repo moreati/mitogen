@@ -28,12 +28,14 @@
     - name: Create sync-test
       file:
         path: /tmp/sync-test
+        mode: u=rwX,go=
         state: directory
       delegate_to: localhost
 
     - name: Create syn-test item
       copy:
         dest: /tmp/sync-test/item
+        mode: u=rw,go=
         content: "item!"
       delegate_to: localhost
 

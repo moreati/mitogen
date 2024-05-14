@@ -1,5 +1,4 @@
 # Test basic functinality of exec_command.
----
 
 - name: integration/connection/exec_command.yml
   hosts: test-targets

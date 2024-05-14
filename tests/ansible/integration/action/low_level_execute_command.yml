@@ -8,6 +8,7 @@
     - name: Run raw module without sudo
       raw: 'echo -en $((1 + 1))'
       register: raw
+      changed_when: false
 
     - name: Verify raw module output.
       assert:
@@ -21,6 +22,7 @@
       become: true
       raw: 'whoami'
       register: raw
+      changed_when: false
 
     - debug: msg="x{{raw}}x"
 

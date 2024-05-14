@@ -13,6 +13,7 @@
     - name: Ensure remove_tmp_path_test
       copy:
         dest: /tmp/remove_tmp_path_test
+        mode: u=rw,go=
         content: "{{ 123123 | random }}"
       register: out
 

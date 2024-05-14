@@ -7,6 +7,8 @@
 
 - shell: echo $MAGIC_PAM_ENV
   register: echo
+  changed_when: false
+  check_mode: false
 
 - assert:
     that: echo.stdout == ""
@@ -15,11 +17,14 @@
 - name: Copy pam_environment
   copy:
     dest: ~/.pam_environment
+    mode: u=rw,go=
     content: |
       MAGIC_PAM_ENV=321
 
 - shell: echo $MAGIC_PAM_ENV
   register: echo
+  changed_when: false
+  check_mode: false
 
 - assert:
     that: echo.stdout == "321"
@@ -32,6 +37,7 @@
 
 - shell: echo $MAGIC_PAM_ENV
   register: echo
+  changed_when: false
 
 - assert:
     that: echo.stdout == ""

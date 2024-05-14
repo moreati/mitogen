@@ -13,6 +13,8 @@
         no_proxy: "{{ lookup('env', 'no_proxy')|default('') }}"
         PATH: "{{ lookup('env', 'PATH') }}"
       shell: virtualenv /tmp/issue_152_virtualenv
+      args:
+        creates: /tmp/issue_152_virtualenv
       when:
         - lout.python.version.full is version('2.7', '>=', strict=True)
 

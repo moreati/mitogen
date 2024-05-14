@@ -58,6 +58,7 @@
             - name: create test file
               file:
                 path: /var/run/reboot-required
+                mode: u=rw,go=
                 state: touch
 
             - name: Check if reboot is required
@@ -69,13 +70,13 @@
               shell: sleep 2 && shutdown -r now "Ansible updates triggered"
               async: 1
               poll: 0
-              when: reboot_required.stat.exists == True
+              when: reboot_required.stat.exists
 
             - name: Wait 300 seconds for server to become available
               wait_for_connection:
                 delay: 30
                 timeout: 300
-              when: reboot_required.stat.exists == True
+              when: reboot_required.stat.exists
 
             - name: cleanup test file
               file:

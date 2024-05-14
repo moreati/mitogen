@@ -1,7 +1,4 @@
-
-#
 # This playbook imports all tests that are known to work at present.
-#
 
 - import_playbook: action/all.yml
   tags: action

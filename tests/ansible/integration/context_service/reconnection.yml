@@ -20,6 +20,7 @@
 
     - connection: local
       shell: sleep 3
+      changed_when: false
 
     - wait_for_connection:
 

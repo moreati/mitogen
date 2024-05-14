@@ -6,8 +6,9 @@
     - name: Echo $SOME_ENV
       shell: echo $SOME_ENV
       environment:
-        SOME_ENV: 123
+        SOME_ENV: "123"
       register: result
+      changed_when: false
 
     - assert:
         that: "result.stdout == '123'"

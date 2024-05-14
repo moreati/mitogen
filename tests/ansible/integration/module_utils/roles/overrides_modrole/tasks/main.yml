@@ -1,5 +1,3 @@
----
-
 - uses_custom_known_hosts:
   register: out
 

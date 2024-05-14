@@ -1,4 +1,3 @@
-
 - name: integration/module_utils/overrides_builtin.yml
   hosts: test-targets
   roles:

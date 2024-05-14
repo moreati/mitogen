@@ -1,10 +1,10 @@
 - name: integration/become/sudo_flags_failure.yml
   hosts: test-targets
   tasks:
-
     - name: Verify behaviour for bad sudo flags.
       shell: whoami
       become: true
+      changed_when: false
       ignore_errors: true
       register: out
       vars:

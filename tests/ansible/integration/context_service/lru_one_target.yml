@@ -7,7 +7,6 @@
     ubound: "{{max_interps|int + 1}}"
 
   tasks:
-
     - name: Reset all connections
       mitogen_shutdown_all:
       when: is_mitogen

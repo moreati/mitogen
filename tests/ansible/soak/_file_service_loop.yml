@@ -5,4 +5,5 @@
   - name: Create /tmp/foo-<inventory_hostname>
     copy:
       dest: /tmp/foo-{{inventory_hostname}}
+      mode: u=rw,go=
       content: "{{content}}"

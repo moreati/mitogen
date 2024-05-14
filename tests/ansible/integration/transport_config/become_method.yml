@@ -75,7 +75,6 @@
     - mitogen_only
 
 
-
 # mitogen_via used to specify explicit become method
 - hosts: tc-become-method-unset
   vars: {mitogen_via: "doas:doasuser@tc-become-method-su"}

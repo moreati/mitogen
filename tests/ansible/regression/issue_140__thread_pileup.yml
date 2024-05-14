@@ -9,6 +9,7 @@
   - name: Create file tree
     connection: local
     shell: >
+      set -o pipefail;
       mkdir /tmp/filetree.in;
       seq -f /tmp/filetree.in/%g 1 1000 | xargs touch;
     args:
@@ -21,12 +22,13 @@
     file:
       state: directory
       path: /tmp/filetree.out
+      mode: u=rwX,go=rX
 
   - name: Trigger nasty process pileup
     copy:
       src: "{{item.src}}"
       dest: "/tmp/filetree.out/{{item.path}}"
-      mode: 0644
+      mode: u=rw,go=r
     with_filetree: /tmp/filetree.in
     when: item.state == 'file'
     loop_control:

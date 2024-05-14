@@ -1,4 +1,3 @@
-
 # issue #294: ensure running mixed vanilla/Mitogen succeeds.
 
 - name: integration/strategy/_mixed_vanilla_mitogen.yml (linear)

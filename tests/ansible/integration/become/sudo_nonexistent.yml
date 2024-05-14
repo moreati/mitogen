@@ -6,6 +6,7 @@
       shell: whoami
       become: true
       become_user: slartibartfast
+      changed_when: false
       ignore_errors: true
       register: out
       when:

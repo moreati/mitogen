@@ -4,13 +4,16 @@
   - name: Create loop templates dir
     file:
       dest: /tmp/templates
-      state: "{{item}}"
-    with_items: ["absent", "directory"]
+      mode: "{{ item.mode | default(omit) }}"
+      state: "{{ item.state }}"
+    with_items:
+      - {state: absent}
+      - {mode: "u=rwX,go=", state: directory}
 
   - name: Copy loop files
     copy:
       dest: /tmp/templates/{{item}}
-      mode: 0755
+      mode: u=rwx,go=rx
       content:
         Hello from {{item}}
     with_sequence: start=1 end={{end|default(20)}}

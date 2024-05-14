@@ -1,7 +1,6 @@
 - name: integration/runner/custom_bash_old_style_module.yml
   hosts: test-targets
   tasks:
-
     - custom_bash_old_style_module:
         foo: true
       with_sequence: start=1 end={{end|default(1)}}

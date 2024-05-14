@@ -1,4 +1,3 @@
-
 - name: integration/action/remote_file_exists.yml
   hosts: test-targets
   tasks:
@@ -17,6 +16,7 @@
     - name: Ensure does-exist does
       copy:
         dest: /tmp/does-exist
+        mode: u=rw,go=
         content: "I think, therefore I am"
     - action_passthrough:
         method: _remote_file_exists

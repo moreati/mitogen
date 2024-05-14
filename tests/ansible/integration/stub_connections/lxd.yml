@@ -1,4 +1,3 @@
-
 - name: integration/stub_connections/lxd.yml
   hosts: test-targets
   gather_facts: false

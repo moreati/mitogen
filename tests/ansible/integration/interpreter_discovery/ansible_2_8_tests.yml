@@ -1,5 +1,4 @@
 # ripped and ported from https://github.com/ansible/ansible/pull/50163/files, when interpreter discovery was added to ansible
----
 
 - name: integration/interpreter_discovery/ansible_2_8_tests.yml
   hosts: test-targets
@@ -101,8 +100,8 @@
             # only check for a warning if legacy returned /usr/bin/python and auto didn't
             when:
               - legacy.ansible_facts.discovered_interpreter_python == '/usr/bin/python'
-              -  auto_out.ansible_facts.discovered_interpreter_python != '/usr/bin/python'
-              -  ansible_version.full is version_compare('2.12.0', '>=', strict=True)
+              - auto_out.ansible_facts.discovered_interpreter_python != '/usr/bin/python'
+              - ansible_version.full is version_compare('2.12.0', '>=', strict=True)
 
         - name: test that auto_silent never warns and got the same answer as auto
           block:

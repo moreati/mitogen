@@ -13,6 +13,7 @@
     with_items:
     - "sleep 3; echo hi-from-job-1"
     - "sleep 5; echo hi-from-job-2"
+    changed_when: false
 
   - name: Ensure static files are collected and compressed
     async_status:

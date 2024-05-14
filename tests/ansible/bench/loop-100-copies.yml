@@ -7,20 +7,22 @@
     shell: >
       mkdir -p /tmp/filetree.in;
       for i in `seq -f /tmp/filetree.in/%g 1 100`; do echo $RANDOM > $i; done;
+    args:
+      creates: /tmp/filetree.in/100
 
   - name: Delete remote file tree
     file: path=/tmp/filetree.out state=absent
-    when: 0
 
   - file:
       state: directory
       path: /tmp/filetree.out
+      mode: u=rwX,go=rX
 
   - name: Trigger nasty process pileup
     copy:
       src: "{{item.src}}"
       dest: "/tmp/filetree.out/{{item.path}}"
-      mode: 0644
+      mode: u=rw,go=r
     with_filetree: /tmp/filetree.in
     when: item.state == 'file'
     loop_control:

@@ -1,5 +1,3 @@
----
-
 - uses_external3:
   register: out
 

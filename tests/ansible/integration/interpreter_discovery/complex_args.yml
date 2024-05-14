@@ -1,5 +1,4 @@
 # checks complex ansible_python_interpreter values as well as jinja in the ansible_python_interpreter value
----
 
 - name: integration/interpreter_discovery/complex_args.yml
   hosts: test-targets
@@ -12,6 +11,7 @@
     - name: create temp file to source
       file:
         path: /tmp/fake
+        mode: u=rw,go=
         state: touch
 
     # TODO: this works in Mac 10.15 because sh defaults to bash
@@ -46,7 +46,7 @@
           {% if "1" == "1" %}
             {{ special_python }}
           {% else %}
-            python 
+            python
           {% endif %}
   tags:
     - complex_args

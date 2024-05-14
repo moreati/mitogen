@@ -1,5 +1,3 @@
----
-
 - import_playbook: become_same_user.yml
 - import_playbook: disconnect_during_module.yml
 - import_playbook: disconnect_resets_connection.yml

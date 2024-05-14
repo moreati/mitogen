@@ -14,6 +14,7 @@
     async: 1
     poll: 0
     register: job
+    changed_when: false
 
   - name: busy-poll up to 500 times
     async_status:

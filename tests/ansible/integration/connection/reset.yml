@@ -1,8 +1,6 @@
 # issue #369: Connection.reset() should cause destruction of the remote
 # interpreter and any children.
 
----
-
 - name: integration/connection/reset.yml
   hosts: test-targets
   tasks:

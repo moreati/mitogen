@@ -11,6 +11,7 @@
   - name: Create /tmp/foo
     file:
       path: /tmp/foo
+      mode: u=rwX,go=
       state: directory
   - name: Unarchive unarchive_test.tar
     unarchive:

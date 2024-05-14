@@ -6,6 +6,7 @@
     - name: Create tiny file
       copy:
         dest: /tmp/copy-tiny-file
+        mode: u=rw,go=
         content:
           this is a tiny file.
       delegate_to: localhost
@@ -13,6 +14,7 @@
     - name: Create large file
       copy:
         dest: /tmp/copy-large-file
+        mode: u=rw,go=
         # Must be larger than Connection.SMALL_SIZE_LIMIT.
         content: "{% for x in range(200000) %}x{% endfor %}"
       delegate_to: localhost
@@ -31,20 +33,24 @@
       copy:
         dest: /tmp/copy-large-file.out
         src: /tmp/copy-large-file
+        mode: u=rw,go=
 
     - name: Copy tiny file
       copy:
         dest: /tmp/copy-tiny-file.out
         src: /tmp/copy-tiny-file
+        mode: u=rw,go=
 
     - name: Copy tiny inline file
       copy:
         dest: /tmp/copy-tiny-inline-file.out
+        mode: u=rw,go=
         content: "tiny inline content"
 
     - name: Copy large inline file
       copy:
         dest: /tmp/copy-large-inline-file.out
+        mode: u=rw,go=
         content: |
           {% for x in range(200000) %}y{% endfor %}
 

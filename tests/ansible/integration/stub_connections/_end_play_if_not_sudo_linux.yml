@@ -3,6 +3,7 @@
 
 - shell: uname -s
   register: out
+  changed_when: false
 
 - meta: end_play
   when: out.stdout != 'Linux'
@@ -10,6 +11,7 @@
 - command: sudo -n whoami
   args:
     warn: "{{ False if ansible_version.full is version('2.10', '<=', strict=True) else omit }}"
+  changed_when: false
   ignore_errors: true
   register: sudo_available
 

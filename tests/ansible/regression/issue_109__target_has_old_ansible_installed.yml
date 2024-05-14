@@ -13,6 +13,7 @@
       copy:
         dest: "{{ansible_user_dir}}/ansible.py"
         src: ansible.py
+        mode: u=rw,go=
 
     # Restart the connection.
     - meta: reset_connection

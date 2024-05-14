@@ -1,4 +1,3 @@
-
 # Current working directory should be that of WorkerProcess -- which is the
 # same directory as the currently executing playbook, i.e. integration/local/
 #
@@ -11,6 +10,7 @@
     connection: local
     command: pwd
     register: pwd
+    changed_when: false
 
   - connection: local
     stat:

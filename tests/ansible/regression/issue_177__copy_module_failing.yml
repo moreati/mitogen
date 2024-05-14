@@ -6,7 +6,7 @@
     copy:
       src: /etc/{{item}}
       dest: /tmp/{{item}}
-      mode: 0644
+      mode: u=rw,go=r
     with_items:
       - passwd
       - hosts
