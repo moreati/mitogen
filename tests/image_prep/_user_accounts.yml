@@ -13,38 +13,46 @@
   vars:
     distro: "{{ansible_distribution}}"
     special_users:
-      - has_sudo
-      - has_sudo_nopw
-      - has_sudo_pubkey
-      - pw_required
-      - readonly_homedir
-      - require_tty
-      - require_tty_pw_required
-      - permdenied
-      - slow_user
-      - webapp
-      - sudo1
-      - sudo2
-      - sudo3
-      - sudo4
+      - mitogen__has_sudo
+      - mitogen__has_sudo_nopw
+      - mitogen__has_sudo_pubkey
+      - mitogen__pw_required
+      - mitogen__readonly_homedir
+      - mitogen__require_tty
+      - mitogen__require_tty_pw_required
+      - mitogen__permdenied
+      - mitogen__slow_user
+      - mitogen__webapp
+      - mitogen__sudo1
+      - mitogen__sudo2
+      - mitogen__sudo3
+      - mitogen__sudo4
 
     user_groups:
-      has_sudo: ['mitogen__group', '{{sudo_group[distro]}}']
-      has_sudo_pubkey: ['mitogen__group', '{{sudo_group[distro]}}']
-      has_sudo_nopw: ['mitogen__group', 'mitogen__sudo_nopw']
-      sudo1: ['mitogen__group', 'mitogen__sudo_nopw']
-      sudo2: ['mitogen__group', '{{sudo_group[distro]}}']
-      sudo3: ['mitogen__group', '{{sudo_group[distro]}}']
-      sudo4: ['mitogen__group', '{{sudo_group[distro]}}']
+      mitogen__has_sudo: ['mitogen__group', '{{ sudo_group[distro] }}']
+      mitogen__has_sudo_pubkey: ['mitogen__group', '{{ sudo_group[distro] }}']
+      mitogen__has_sudo_nopw: ['mitogen__group', 'mitogen__sudo_nopw']
+      mitogen__sudo1: ['mitogen__group', 'mitogen__sudo_nopw']
+      mitogen__sudo2: ['mitogen__group', '{{ sudo_group[distro] }}']
+      mitogen__sudo3: ['mitogen__group', '{{ sudo_group[distro] }}']
+      mitogen__sudo4: ['mitogen__group', '{{ sudo_group[distro] }}']
 
-    normal_users: "{{
-      lookup('sequence', 'start=1 end=5 format=user%d', wantlist=True)
-      }}"
+    normal_users:
+      - mitogen__user1
+      - mitogen__user2
+      - mitogen__user3
+      - mitogen__user4
+      - mitogen__user5
 
     all_users: "{{
       special_users +
       normal_users
       }}"
+
+    mitogen_test_groups:
+      - mitogen__group
+      - mitogen__sudo_nopw
+
   tasks:
     - name: Disable non-localhost SSH for Mitogen users
       when: false
@@ -56,29 +64,29 @@
 
     - name: Create Mitogen test groups
       group:
-        name: "mitogen__{{item}}"
-      with_items:
-      - group
-      - sudo_nopw
+        name: "{{ item }}"
+      loop: "{{ mitogen_test_groups }}"
 
     - name: Create user accounts
+      vars:
+        password: "{{ item | replace('mitogen__', '') }}_password"
       block:
       - user:
-          name: "mitogen__{{item}}"
+          name: "{{ item }}"
           shell: /bin/bash
           groups: "{{user_groups[item]|default(['mitogen__group'])}}"
-          password: "{{ (item + '_password') | password_hash('sha256') }}"
+          password: "{{ password | password_hash('sha256') }}"
         with_items: "{{all_users}}"
         when: ansible_system != 'Darwin'
       - user:
-          name: "mitogen__{{item}}"
+          name: "{{ item }}"
           shell: /bin/bash
           groups: |
             {{
                 ['com.apple.access_ssh'] +
                 (user_groups[item] | default(['mitogen__group']))
             }}
-          password: "{{item}}_password"
+          password: "{{ password }}"
         with_items: "{{all_users}}"
         when: ansible_system == 'Darwin'
 
@@ -90,7 +98,7 @@
         domain: /Library/Preferences/com.apple.loginwindow
         type: array
         key: HiddenUsersList
-        value: ['mitogen_{{item}}']
+        value: ['{{ item }}']
 
     - name: Check if AccountsService is used
       stat:
@@ -101,7 +109,7 @@
       when: ansible_system == 'Linux' and out.stat.exists
       with_items: "{{all_users}}"
       copy:
-        dest: /var/lib/AccountsService/users/mitogen__{{item}}
+        dest: /var/lib/AccountsService/users/{{ item }}
         mode: u=rw,go=
         content: |
           [User]
@@ -187,7 +195,7 @@
     - name: Allow passwordless for many accounts
       lineinfile:
         path: /etc/sudoers
-        line: "{{lookup('pipe', 'whoami')}} ALL = (mitogen__{{item}}:ALL) NOPASSWD:ALL"
+        line: "{{ lookup('pipe', 'whoami') }} ALL = ({{ item }}:ALL) NOPASSWD:ALL"
         validate: '/usr/sbin/visudo -cf %s'
       with_items: "{{normal_users}}"
       when:
