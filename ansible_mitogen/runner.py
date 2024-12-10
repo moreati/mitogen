@@ -370,6 +370,7 @@ class Runner(object):
         impossible to restore the old directory, so don't even try.
         """
         if self.cwd:
+            LOG.info('%s._setup_cwd(): self.cwd=%r', self, self.cwd)
             os.chdir(self.cwd)
 
     def _setup_environ(self):
@@ -389,6 +390,7 @@ class Runner(object):
         #591: make a best-effort attempt to return to :attr:`good_temp_dir`.
         """
         try:
+            LOG.info('%s._revert_cwd(): self, self.good_temp_dir=%r', self, self.good_temp_dir)
             os.chdir(self.good_temp_dir)
         except OSError:
             LOG.debug('%r: could not restore CWD to %r',

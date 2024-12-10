@@ -1304,7 +1304,11 @@ class Options(object):
         self.profiling = profiling
         self.unidirectional = unidirectional
         self.max_message_size = max_message_size
-        self.connect_deadline = mitogen.core.now() + self.connect_timeout
+        try:
+            self.connect_deadline = mitogen.core.now() + self.connect_timeout
+        except TypeError:
+            raise TypeError('self.connect_timeout=%r, type=%s'
+                            % (self.connect_timeout, type(self.connect_timeout)))
 
 
 class Connection(object):

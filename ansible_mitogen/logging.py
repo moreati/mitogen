@@ -59,11 +59,35 @@ def set_process_name(name):
     _process_pid = os.getpid()
 
 
+def logging_level_to_verbosity(logging_level):
+    mapping = {
+        logging.CRITICAL: 0,
+        logging.ERROR: 0,
+        logging.WARNING: 0,
+        logging.INFO: 1,
+        logging.DEBUG: 3,
+    }
+    return mapping[logging_level]
+
+
+def verbosity_to_logging_level(verbosity):
+    mapping = {
+        0: logging.WARNING,
+        1: logging.INFO,
+        2: logging.INFO,
+        3: logging.DEBUG,
+        4: logging.DEBUG,
+        5: logging.DEBUG,
+        6: logging.DEBUG,
+    }
+    return mapping.get(verbosity, default=logging.DEBUG)
+
+
 class Handler(logging.Handler):
     """
     Use Mitogen's log format, but send the result to a Display method.
     """
-    def __init__(self, normal_method):
+    def __init__(self, normal_method=None):
         logging.Handler.__init__(self)
         self.formatter = mitogen.utils.log_get_formatter()
         self.normal_method = normal_method
@@ -94,8 +118,11 @@ class Handler(logging.Handler):
             display.error(s, wrap_text=False)
         elif record.levelno >= logging.WARNING:
             display.warning(s, formatted=True)
-        else:
+        elif self.normal_method:
             self.normal_method(s)
+        else:
+            verbosity = logging_level_to_verbosity(record.levelno)
+            display.verbose(s, caplevel=verbosity-1)
 
 
 def setup():
@@ -110,19 +137,12 @@ def setup():
     l_operon = logging.getLogger('operon')
 
     for logger in l_mitogen, l_mitogen_io, l_ansible_mitogen, l_operon:
-        logger.handlers = [Handler(display.vvv)]
+        logger.handlers = [Handler()]
         logger.propagate = False
 
-    if display.verbosity > 2:
-        l_ansible_mitogen.setLevel(logging.DEBUG)
-        l_mitogen.setLevel(logging.DEBUG)
-    else:
-        # Mitogen copies the active log level into new children, allowing them
-        # to filter tiny messages before they hit the network, and therefore
-        # before they wake the IO loop. Explicitly setting INFO saves ~4%
-        # running against just the local machine.
-        l_mitogen.setLevel(logging.ERROR)
-        l_ansible_mitogen.setLevel(logging.ERROR)
+    ansible_display_level = verbosity_to_logging_level(display.verbosity)
+    l_ansible_mitogen.setLevel(ansible_display_level)
+    l_mitogen.setLevel(ansible_display_level)
 
     if display.verbosity > 3:
         l_mitogen_io.setLevel(logging.DEBUG)

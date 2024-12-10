@@ -584,7 +584,7 @@ def exec_args(args, in_data='', chdir=None, shell=None, emulate_tty=False):
     :return:
         (return code, stdout bytes, stderr bytes)
     """
-    LOG.debug('exec_args(%r, ..., chdir=%r)', args, chdir)
+    LOG.info('exec_args(%r, ..., chdir=%r)', args, chdir)
     assert isinstance(args, list)
 
     if emulate_tty:

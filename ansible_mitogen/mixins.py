@@ -489,10 +489,13 @@ class ActionModuleMixin(ansible.plugins.action.ActionBase):
 
         for possible_python in possible_pythons:
             try:
+                LOG.debug('_low_level_execute_command(): trying %s', possible_python)
                 self._possible_python_interpreter = possible_python
                 rc, stdout, stderr = _run_cmd()
+                LOG.debug('_low_level_execute_command(): got rc=%d, stdout=%r, stderr=%r', rc, stdout, stderr)
             # TODO: what exception is thrown?
-            except:
+            except BaseException as exc:
+                LOG.warning('%r._low_level_execute_command for possible_python=%r: %s, %r', self, possible_python, type(exc), exc)
                 # we've reached the last python attempted and failed
                 # TODO: could use enumerate(), need to check which version of python first had it though
                 if possible_python == 'python':
@@ -501,10 +504,12 @@ class ActionModuleMixin(ansible.plugins.action.ActionBase):
                     continue
 
         stdout_text = to_text(stdout, errors=encoding_errors)
+        stderr_text = to_text(stderr, errors=encoding_errors)
 
         return {
             'rc': rc,
             'stdout': stdout_text,
             'stdout_lines': stdout_text.splitlines(),
-            'stderr': stderr,
+            'stderr': stderr_text,
+            'stderr_lines': stderr_text.splitlines(),
         }
