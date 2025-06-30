@@ -49,6 +49,7 @@ except ImportError:
     setproctitle = None
 
 import mitogen
+import mitogen._types as T
 import mitogen.core
 import mitogen.debug
 import mitogen.fork
@@ -139,6 +140,7 @@ def get_classic_worker_model(**kwargs):
 
 
 def getenv_int(key, default=0):
+    # type: (T.EnvironmentVariableName, int) -> int
     """
     Get an integer-valued environment variable `key`, if it exists and parses
     as an integer, otherwise return `default`.
@@ -168,6 +170,7 @@ def save_pid(name):
 
 
 def setup_pool(pool):
+    # type: (mitogen.service.Pool) -> None
     """
     Configure a connection multiplexer's :class:`mitogen.service.Pool` with
     services accessed by clients and WorkerProcesses.
@@ -180,13 +183,16 @@ def setup_pool(pool):
 
 
 def _setup_responder(responder):
+    # type: (mitogen.master.ModuleResponder) -> None
     """
     Configure :class:`mitogen.master.ModuleResponder` to only permit
     certain packages, and to generate custom responses for certain modules.
     """
     responder.blacklist_prefix('__main__')
 
+    # TODO Can this be limited to ansible.module_utils?
     responder.whitelist_prefix('ansible')
+    # TODO Can this be limited?
     responder.whitelist_prefix('ansible_mitogen')
 
     # Ansible 2.3 is compatible with Python 2.4 targets, however
@@ -262,6 +268,7 @@ def common_setup(enable_affinity=True, _init_logging=True):
 
 
 def get_cpu_count(default=None):
+    # type: (int|None) -> int|None
     """
     Get the multiplexer CPU count from the MITOGEN_CPU_COUNT environment
     variable, returning `default` if one isn't set, or is out of range.

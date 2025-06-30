@@ -36,6 +36,7 @@ except ImportError:
     from StringIO import StringIO
 
 import mitogen.core
+from mitogen._types import Iterable, ModuleContentRaw, ModuleSourceCode
 
 if sys.version_info < (2, 7, 11):
     from mitogen.compat import tokenize
@@ -44,6 +45,7 @@ else:
 
 
 def minimize_source(source):
+    # type: (ModuleContentRaw | ModuleSourceCode) -> ModuleContentRaw | ModuleSourceCode
     """
     Remove comments and docstrings from Python `source`, preserving line
     numbers and syntax of empty blocks.
@@ -63,6 +65,7 @@ def minimize_source(source):
 
 
 def strip_comments(tokens):
+    # type: (Iterable[tokenize.TokenInfo]) -> Iterable[tokenize.TokenInfo]
     """
     Drop comment tokens from a `tokenize` stream.
 
@@ -86,6 +89,7 @@ def strip_comments(tokens):
 
 
 def strip_docstrings(tokens):
+    # type: (Iterable[tokenize.TokenInfo]) -> Iterable[tokenize.TokenInfo]
     """
     Replace docstring tokens with NL tokens in a `tokenize` stream.
 
@@ -122,6 +126,7 @@ def strip_docstrings(tokens):
 
 
 def reindent(tokens, indent=' '):
+    # type: (Iterable[tokenize.TokenInfo], str) -> Iterable[tokenize.TokenInfo]
     """
     Replace existing indentation in a token steam, with `indent`.
     """

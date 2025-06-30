@@ -95,8 +95,9 @@ except ImportError:
     # Python < 3.4, PEP 302 Import Hooks
     import imp
 
+
 # Absolute imports for <2.5.
-select = __import__('select')
+select = __import__('select')  # type: types.ModuleType
 
 try:
     import cProfile
@@ -112,6 +113,14 @@ try:
     ModuleNotFoundError
 except NameError:
     ModuleNotFoundError = ImportError
+
+from mitogen._types import (
+    Any, Callable,
+    MetaPathFinder, Loader,
+    ModuleName, ModuleNames, ModuleSpec, ModuleType,
+    Sequence, cast,
+
+)
 
 # TODO: usage of 'import' after setting __name__, but before fixing up
 # sys.modules generates a warning. This happens when profiling = True.
@@ -157,7 +166,7 @@ IS_DEAD = 999
 
 PY24 = sys.version_info < (2, 5)
 PY3 = sys.version_info > (3,)
-if PY3:
+if sys.version_info >= (3, 0):
     import pickle
     import _thread as thread
     from io import BytesIO
@@ -168,6 +177,17 @@ if PY3:
     BufferType = lambda buf, start: memoryview(buf)[start:]
     integer_types = (int,)
     iteritems, iterkeys, itervalues = dict.items, dict.keys, dict.values
+    # pickle.Unpickler is a class with an overridable find_class() method
+    class _Unpickler(pickle.Unpickler):
+        def __init__(self, file, fix_imports=True, encoding='bytes',
+                     errors='strict', buffers=None):
+            super().__init__(file, fix_imports=fix_imports, encoding=encoding,
+                             errors=errors, buffers=buffers)
+        def find_class(self, module, func):
+            # type: (str, str) -> Callable[..., Any]
+            return self.find_global(module, func)  # type: ignore
+        def find_global(self, module, func):
+            raise NotImplementedError
 else:
     import cPickle as pickle
     import thread
@@ -179,13 +199,78 @@ else:
     UnicodeType = unicode
     integer_types = (int, long)
     iteritems, iterkeys, itervalues = dict.iteritems, dict.iterkeys, dict.itervalues
+    # cPickle.Unpickler is a function exposing a writeable find_global attribute.
+    _Unpickler = pickle.Unpickler
 
 AnyTextType = (BytesType, UnicodeType)
 
-try:
+if sys.version_info >= (2, 6):
     next = next
-except NameError:
+    threading__current_thread = threading.current_thread
+else:
     next = lambda it: it.next()
+    threading__current_thread = threading.currentThread  # Deprecated Py 3.10
+
+if sys.version_info >= (2, 5):
+    all, any = all, any
+    bytes_partition = BytesType.partition
+    str_partition = UnicodeType.partition
+    str_rpartition = UnicodeType.rpartition
+    pickle__dumps = pickle.dumps
+else:
+    def all(it):
+        for elem in it:
+            if not elem:
+                return False
+        return True
+
+    def any(it):
+        for elem in it:
+            if elem:
+                return True
+        return False
+
+    def _partition(s, sep, find):
+        idx = find(sep)
+        if idx != -1:
+            left = s[0:idx]
+            return left, sep, s[len(left)+len(sep):]
+
+    def bytes_partition(s, sep): return _partition(s, sep, s.find) or (s, '', '')
+    def str_partition(s, sep): return _partition(s, sep, s.find) or (s, u'', u'')
+    def str_rpartition(s, sep): return _partition(s, sep, s.rfind) or (u'', u'', s)
+
+    class Py24Pickler(py_pickle.Pickler):
+        """
+        Exceptions were classic classes until Python 2.5. Sadly for 2.4, cPickle
+        offers little control over how a classic instance is pickled. Therefore 2.4
+        uses a pure-Python pickler, so CallError can be made to look as it does on
+        newer Pythons.
+
+        This mess will go away once proper serialization exists.
+        """
+        @classmethod
+        def dumps(cls, obj, protocol):
+            bio = BytesIO()
+            self = cls(bio, protocol=protocol)
+            self.dump(obj)
+            return bio.getvalue()
+
+        def save_exc_inst(self, obj):
+            if isinstance(obj, CallError):
+                func, args = obj.__reduce__()
+                self.save(func)
+                self.save(args)
+                self.write(py_pickle.REDUCE)
+            else:
+                py_pickle.Pickler.save_inst(self, obj)
+
+        if PY24:
+            dispatch = py_pickle.Pickler.dispatch.copy()
+            dispatch[py_pickle.InstanceType] = save_exc_inst
+
+    pickle__dumps = Py24Pickler.dumps
+
 
 # #550: prehistoric WSL did not advertise itself in uname output.
 try:
@@ -247,7 +332,8 @@ class Error(Exception):
         Format string arguments.
     """
     def __init__(self, fmt=None, *args):
-        if args:
+        # type: (None|bytes|str, ...) -> None
+        if fmt and args:
             fmt %= args
         if fmt and not isinstance(fmt, UnicodeType):
             fmt = fmt.decode('utf-8')
@@ -329,6 +415,7 @@ class CallError(Error):
     external context is appended to the exception message.
     """
     def __init__(self, fmt=None, *args):
+        # type: (BaseException|None|bytes|str, ...) -> None
         if not isinstance(fmt, BaseException):
             Error.__init__(self, fmt, *args)
         else:
@@ -346,6 +433,7 @@ class CallError(Error):
 
 
 def _unpickle_call_error(s):
+    # type: (str) -> CallError
     if not (type(s) is UnicodeType and len(s) < 10000):
         raise TypeError('cannot unpickle CallError: bad input')
     return CallError(s)
@@ -373,7 +461,18 @@ class TimeoutError(Error):
     pass
 
 
+def utf8(s):
+    # type: (bytes|str) -> bytes
+    """
+    Coerce an object to bytes if it is Unicode.
+    """
+    if isinstance(s, UnicodeType):
+        s = s.encode('utf-8')
+    return s
+
+
 def to_text(o):
+    # type: (object) -> UnicodeType
     """
     Coerce `o` to Unicode by decoding it from UTF-8 if it is an instance of
     :class:`bytes`, otherwise pass it to the :class:`str` constructor. The
@@ -388,58 +487,12 @@ def to_text(o):
 now = getattr(time, 'monotonic', time.time)
 
 
-# Python 2.4
-try:
-    all, any = all, any
-except NameError:
-    def all(it):
-        for elem in it:
-            if not elem:
-                return False
-        return True
-
-    def any(it):
-        for elem in it:
-            if elem:
-                return True
-        return False
-
-
-def _partition(s, sep, find):
-    """
-    (str|unicode).(partition|rpartition) for Python 2.4/2.5.
-    """
-    idx = find(sep)
-    if idx != -1:
-        left = s[0:idx]
-        return left, sep, s[len(left)+len(sep):]
-
-
-def threading__current_thread():
-    try:
-        return threading.current_thread()  # Added in Python 2.6+
-    except AttributeError:
-        return threading.currentThread()  # Deprecated in Python 3.10+
-
-
 def threading__thread_name(thread):
+    # type: (threading.Thread) -> str
     try:
         return thread.name  # Added in Python 2.6+
     except AttributeError:
         return thread.getName()  # Deprecated in Python 3.10+
-
-
-if hasattr(UnicodeType, 'rpartition'):
-    str_partition = UnicodeType.partition
-    str_rpartition = UnicodeType.rpartition
-    bytes_partition = BytesType.partition
-else:
-    def str_partition(s, sep):
-        return _partition(s, sep, s.find) or (s, u'', u'')
-    def str_rpartition(s, sep):
-        return _partition(s, sep, s.rfind) or (u'', u'', s)
-    def bytes_partition(s, sep):
-        return _partition(s, sep, s.find) or (s, '', '')
 
 
 def _has_parent_authority(context_id):
@@ -447,6 +500,7 @@ def _has_parent_authority(context_id):
         (context_id == mitogen.context_id) or
         (context_id in mitogen.parent_ids)
     )
+
 
 def has_parent_authority(msg, _stream=None):
     """
@@ -604,7 +658,7 @@ def io_op(func, *args):
         try:
             return func(*args), None
         except (select.error, OSError, IOError):
-            e = sys.exc_info()[1]
+            e = cast(OSError, sys.exc_info()[1])
             _vv and IOLOG.debug('io_op(%r) -> OSError: %s', func, e)
             if e.args[0] == errno.EINTR:
                 continue
@@ -757,54 +811,6 @@ def iter_split(buf, delim, func):
     return buf[start:], cont
 
 
-class Py24Pickler(py_pickle.Pickler):
-    """
-    Exceptions were classic classes until Python 2.5. Sadly for 2.4, cPickle
-    offers little control over how a classic instance is pickled. Therefore 2.4
-    uses a pure-Python pickler, so CallError can be made to look as it does on
-    newer Pythons.
-
-    This mess will go away once proper serialization exists.
-    """
-    @classmethod
-    def dumps(cls, obj, protocol):
-        bio = BytesIO()
-        self = cls(bio, protocol=protocol)
-        self.dump(obj)
-        return bio.getvalue()
-
-    def save_exc_inst(self, obj):
-        if isinstance(obj, CallError):
-            func, args = obj.__reduce__()
-            self.save(func)
-            self.save(args)
-            self.write(py_pickle.REDUCE)
-        else:
-            py_pickle.Pickler.save_inst(self, obj)
-
-    if PY24:
-        dispatch = py_pickle.Pickler.dispatch.copy()
-        dispatch[py_pickle.InstanceType] = save_exc_inst
-
-
-if PY3:
-    # In 3.x Unpickler is a class exposing find_class as an overridable, but it
-    # cannot be overridden without subclassing.
-    class _Unpickler(pickle.Unpickler):
-        def find_class(self, module, func):
-            return self.find_global(module, func)
-    pickle__dumps = pickle.dumps
-elif PY24:
-    # On Python 2.4, we must use a pure-Python pickler.
-    pickle__dumps = Py24Pickler.dumps
-    _Unpickler = pickle.Unpickler
-else:
-    pickle__dumps = pickle.dumps
-    # In 2.x Unpickler is a function exposing a writeable find_global
-    # attribute.
-    _Unpickler = pickle.Unpickler
-
-
 class Message(object):
     """
     Messages are the fundamental unit of communication, comprising fields from
@@ -815,7 +821,7 @@ class Message(object):
     #: Integer target context ID. :class:`Router` delivers messages locally
     #: when their :attr:`dst_id` matches :data:`mitogen.context_id`, otherwise
     #: they are routed up or downstream.
-    dst_id = None
+    dst_id = None  # type: int|None
 
     #: Integer source context ID. Used as the target of replies if any are
     #: generated.
@@ -823,17 +829,17 @@ class Message(object):
 
     #: Context ID under whose authority the message is acting. See
     #: :ref:`source-verification`.
-    auth_id = None
+    auth_id = None  # type: int|None
 
     #: Integer target handle in the destination context. This is one of the
     #: :ref:`standard-handles`, or a dynamically generated handle used to
     #: receive a one-time reply, such as the return value of a function call.
-    handle = None
+    handle = None  # type: int|None
 
     #: Integer target handle to direct any reply to this message. Used to
     #: receive a one-time reply, such as the return value of a function call.
     #: :data:`IS_DEAD` has a special meaning when it appears in this field.
-    reply_to = None
+    reply_to = None  # type: int|None
 
     #: Raw message data bytes.
     data = b('')
@@ -842,11 +848,11 @@ class Message(object):
 
     #: The :class:`Router` responsible for routing the message. This is
     #: :data:`None` for locally originated messages.
-    router = None
+    router = None  # type: Router|None
 
     #: The :class:`Receiver` over which the message was last received. Part of
     #: the :class:`mitogen.select.Select` interface. Defaults to :data:`None`.
-    receiver = None
+    receiver = None  # type: Receiver|None
 
     HEADER_FMT = '>hLLLLLL'
     HEADER_LEN = struct.calcsize(HEADER_FMT)
@@ -881,6 +887,7 @@ class Message(object):
         return s
 
     def _find_global(self, module, func):
+        # type: (str, str) -> Callable[..., Any]
         """
         Return the class implementing `module_name.class_name` or raise
         `StreamError` if the module is not whitelisted.
@@ -935,7 +942,7 @@ class Message(object):
         try:
             self.data = pickle__dumps(obj, protocol=2)
         except pickle.PicklingError:
-            e = sys.exc_info()[1]
+            e = cast(pickle.PicklingError, sys.exc_info()[1])
             self.data = pickle__dumps(CallError(e), protocol=2)
         return self
 
@@ -962,11 +969,6 @@ class Message(object):
         else:
             LOG.debug('dropping reply to message with no return address: %r',
                       msg)
-
-    if PY3:
-        UNPICKLER_KWARGS = {'encoding': 'bytes'}
-    else:
-        UNPICKLER_KWARGS = {}
 
     def _throw_dead(self):
         if len(self.data):
@@ -996,7 +998,7 @@ class Message(object):
         obj = self._unpickled
         if obj is Message._unpickled:
             fp = BytesIO(self.data)
-            unpickler = _Unpickler(fp, **self.UNPICKLER_KWARGS)
+            unpickler = _Unpickler(fp)
             unpickler.find_global = self._find_global
             try:
                 # Must occur off the broker thread.
@@ -1007,7 +1009,7 @@ class Message(object):
                     raise
                 self._unpickled = obj
             except (TypeError, ValueError):
-                e = sys.exc_info()[1]
+                e = cast(Exception, sys.exc_info()[1])
                 raise StreamError('invalid message: %s', e)
 
         if throw:
@@ -1063,6 +1065,7 @@ class Sender(object):
         )
 
     def __repr__(self):
+        # type: () -> str
         return 'Sender(%r, %r)' % (self.context, self.dst_handle)
 
     def __reduce__(self):
@@ -1281,7 +1284,7 @@ class Channel(Sender, Receiver):
         )
 
 
-class Importer(object):
+class Importer(MetaPathFinder, Loader):
     """
     Import protocol implementation that fetches modules from the parent
     process.
@@ -1314,7 +1317,7 @@ class Importer(object):
         'su',
         'sudo',
         'utils',
-    ]
+    ]  # type: list[ModuleName]
 
     ALWAYS_BLACKLIST = [
         # 2.x generates needless imports for 'builtins', while 3.x does the
@@ -1334,12 +1337,13 @@ class Importer(object):
         # org.python.core imported by copy, pickle, xml.sax; breaks Jython, but
         # very unlikely to trigger a bug report.
         'org',
-    ]
+    ]  # type: list[ModuleName]
 
     if PY3:
         ALWAYS_BLACKLIST += ['cStringIO']
 
     def __init__(self, router, context, core_src, whitelist=(), blacklist=()):
+        # type: (Router, Context, bytes, ModuleNames|tuple[()], ModuleNames|tuple[()]) -> None
         self._log = logging.getLogger('mitogen.importer')
         self._context = context
         self._present = {'mitogen': self.MITOGEN_PKG_CONTENT}
@@ -1353,8 +1357,8 @@ class Importer(object):
         self.master_blacklist = self.blacklist[:]
 
         # Presence of an entry in this map indicates in-flight GET_MODULE.
-        self._callbacks = {}
-        self._cache = {}
+        self._callbacks = {}  # type: dict[str, list[Callable[[], None]]]
+        self._cache = {}  # type: dict[str, tuple[str, None, str, bytes, list]]
         if core_src:
             self._update_linecache('x/mitogen/core.py', core_src)
             self._cache['mitogen.core'] = (
@@ -1382,6 +1386,7 @@ class Importer(object):
             )
 
     def _install_handler(self, router):
+        # type: (Router) -> None
         router.add_handler(
             fn=self._on_load_module,
             handle=LOAD_MODULE,
@@ -1393,6 +1398,7 @@ class Importer(object):
 
     @staticmethod
     def _loader_from_module(module, default=None):
+        # type: (ModuleType, Any) -> Any
         """Return the loader for a module object."""
         try:
             return module.__spec__.loader
@@ -1405,6 +1411,7 @@ class Importer(object):
         return default
 
     def builtin_find_module(self, fullname):
+        # type: (ModuleName) -> None
         # imp.find_module() will always succeed for __main__, because it is a
         # built-in module. That means it exists on a special linked list deep
         # within the bowels of the interpreter. We must special case it.
@@ -1429,6 +1436,7 @@ class Importer(object):
             fp.close()
 
     def find_module(self, fullname, path=None):
+        # type: (ModuleName, Sequence[str] | None) -> Loader | None
         """
         Return a loader (ourself) or None, for the module with fullname.
 
@@ -1474,6 +1482,7 @@ class Importer(object):
             del _tls.running
 
     def find_spec(self, fullname, path, target=None):
+        # type: (ModuleName, Sequence[str] | None, ModuleType | None) -> ModuleSpec | None
         """
         Return a `ModuleSpec` for module with `fullname` if we will load it.
         Otherwise return `None`, allowing other finders to try.
@@ -1550,6 +1559,7 @@ class Importer(object):
     )
 
     def _refuse_imports(self, fullname):
+        # type: (ModuleName) -> None
         if is_blacklisted_import(self, fullname):
             raise ModuleNotFoundError(self.blacklisted_msg % (fullname,))
 
@@ -1574,6 +1584,7 @@ class Importer(object):
             os.environ['PBR_VERSION'] = '0.0.0'
 
     def _on_load_module(self, msg):
+        # type: (Message) -> None
         if msg.is_dead:
             return
 
@@ -1597,6 +1608,7 @@ class Importer(object):
             callback()
 
     def _request_module(self, fullname, callback):
+        # type: (ModuleName, Callable[[], None]) -> None
         self._lock.acquire()
         try:
             present = fullname in self._cache
@@ -1620,6 +1632,7 @@ class Importer(object):
             callback()
 
     def create_module(self, spec):
+        # type: (ModuleSpec) -> ModuleType | None
         """
         Return a module object for the given ModuleSpec.
 
@@ -1656,6 +1669,7 @@ class Importer(object):
         return module
 
     def exec_module(self, module):
+        # type: (types.ModuleType) -> None
         """
         Execute the module to initialise it. Don't return anything.
 
@@ -1678,6 +1692,7 @@ class Importer(object):
         exec(code, module.__dict__)
 
     def load_module(self, fullname):
+        # type: (ModuleName) -> ModuleType
         """
         Return the loaded module specified by fullname.
 
@@ -1728,6 +1743,7 @@ class Importer(object):
         return sys.modules.get(fullname, mod)
 
     def get_filename(self, fullname):
+        # type: (ModuleName) -> str
         if fullname in self._cache:
             path = self._cache[fullname][2]
             if path is None:
@@ -1739,6 +1755,7 @@ class Importer(object):
             return u'master:' + self._cache[fullname][2]
 
     def get_source(self, fullname):
+        # type: (ModuleName) -> str
         if fullname in self._cache:
             compressed = self._cache[fullname][3]
             if compressed is None:
@@ -1848,13 +1865,13 @@ class Stream(object):
     :class:`Stream` connected to that process.
     """
     #: A :class:`Side` representing the stream's receive file descriptor.
-    receive_side = None
+    receive_side = None  # type: Side|None
 
     #: A :class:`Side` representing the stream's transmit file descriptor.
-    transmit_side = None
+    transmit_side = None  # type: Side|None
 
     #: A :class:`Protocol` representing the protocol active on the stream.
-    protocol = None
+    protocol = None  # type: Protocol|None
 
     #: In parents, the :class:`mitogen.parent.Connection` instance.
     conn = None
@@ -2864,7 +2881,7 @@ class Latch(object):
         try:
             list(poller.poll(timeout))
         except Exception:
-            e = sys.exc_info()[1]
+            e = cast(Exception, sys.exc_info()[1])
 
         self._lock.acquire()
         try:
@@ -2874,7 +2891,7 @@ class Latch(object):
             try:
                 got_cookie = rsock.recv(self.COOKIE_SIZE)
             except socket.error:
-                e2 = sys.exc_info()[1]
+                e2 = cast(socket.error, sys.exc_info()[1])
                 if e2.args[0] == errno.EAGAIN:
                     e = TimeoutError()
                 else:
@@ -3006,7 +3023,7 @@ class Waker(Protocol):
         try:
             self.stream.transmit_side.write(b(' '))
         except OSError:
-            e = sys.exc_info()[1]
+            e = cast(OSError, sys.exc_info()[1])
             if e.args[0] not in (errno.EBADF, errno.EWOULDBLOCK):
                 raise
 
@@ -3094,6 +3111,10 @@ class IoLoggerProtocol(DelimitedProtocol):
         self._log.info('%s', line.decode('utf-8', 'replace'))
 
 
+import typing
+ContextID: typing.TypeAlias = int
+Handle: typing.TypeAlias = int
+
 class Router(object):
     """
     Route messages between contexts, and invoke local handlers for messages
@@ -3141,15 +3162,16 @@ class Router(object):
     )
 
     def __init__(self, broker):
+        # type: (Broker) -> None
         self.broker = broker
         listen(broker, 'exit', self._on_broker_exit)
         self._setup_logging()
 
         self._write_lock = threading.Lock()
         #: context ID -> Stream; must hold _write_lock to edit or iterate
-        self._stream_by_id = {}
+        self._stream_by_id = {}  # type: dict[ContextID, Stream]
         #: List of contexts to notify of shutdown; must hold _write_lock
-        self._context_by_id = {}
+        self._context_by_id = {}  # type: dict[ContextID, Context]
         self._last_handle = itertools.count(1000)
         #: handle -> (persistent?, func(msg))
         self._handle_map = {}
@@ -3173,6 +3195,7 @@ class Router(object):
         _vv = IOLOG.level <= logging.DEBUG
 
     def _on_del_route(self, msg):
+        # type: (Message) -> None
         """
         Stub :data:`DEL_ROUTE` handler; fires 'disconnect' events on the
         corresponding :attr:`_context_by_id` member. This is replaced by
@@ -3759,7 +3782,7 @@ class Broker(object):
             fire(self, 'shutdown')
             self._broker_shutdown()
         except Exception:
-            e = sys.exc_info()[1]
+            e = cast(Exception, sys.exc_info()[1])
             LOG.exception('broker crashed')
             syslog.syslog(syslog.LOG_ERR, 'broker crashed: %s' % (e,))
             syslog.closelog()  # prevent test 'fd leak'.

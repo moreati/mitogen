@@ -56,13 +56,14 @@ try:
     from _imp import is_builtin as _is_builtin
 
     def _find_loader(fullname):
+        # type: (str) -> _typeshed.importlib.LoaderProtocol|None
         try:
             maybe_spec = importlib.util.find_spec(fullname)
         except (ImportError, AttributeError, TypeError, ValueError):
             exc = sys.exc_info()[1]
-            raise ImportError(*exc.args)
+            raise ImportError(*exc.args)  #type: ignore
         try:
-            return maybe_spec.loader
+            return maybe_spec.loader  #type: ignore
         except AttributeError:
             return None
 except ImportError:
@@ -86,6 +87,14 @@ import mitogen.core
 import mitogen.minify
 import mitogen.parent
 
+from mitogen._types import (
+    CodeType, Iterable,
+    ModuleContentRaw, ModuleSourceCode,
+    ModuleFinderHit, ModuleFinderResult,
+    ModuleName, ModuleNames,
+    ModuleResponseNegative, ModuleResponsePositive, ModuleResponse,
+    Name, Path,
+)
 from mitogen.core import any
 from mitogen.core import b
 from mitogen.core import IOLOG
@@ -131,6 +140,7 @@ def _stdlib_paths():
 
 
 def is_stdlib_name(modname):
+    # type: (ModuleName) -> bool
     """
     Return :data:`True` if `modname` appears to come from the standard library.
     """
@@ -159,6 +169,7 @@ _STDLIB_PATHS = _stdlib_paths()
 
 
 def is_stdlib_path(path):
+    # type: (str) -> bool
     return any(
         os.path.commonprefix((libpath, path)) == libpath
         and 'site-packages' not in path
@@ -168,9 +179,10 @@ def is_stdlib_path(path):
 
 
 def get_child_modules(path, fullname):
+    # type: (Path, ModuleName) -> list[ModuleName]
     """
-    Return the suffixes of submodules directly neated beneath of the package
-    directory at `path`.
+    Return the suffixes for any direct submodules in package named fullname,
+    located at path.
 
     :param str path:
         Path to the module's source code on disk, or some PEP-302-recognized
@@ -188,10 +200,13 @@ def get_child_modules(path, fullname):
     else:
         # we loaded some weird package in memory, so we'll see if it has a custom loader we can use
         loader = _find_loader(fullname)
-        return [to_text(name) for name, _ in loader.iter_modules(None)] if loader else []
+        if loader:
+            return [to_text(name) for name, _ in loader.iter_modules(None)]  # type: ignore
+        return []
 
 
 def _looks_like_script(path):
+    # type: (Path) -> bool
     """
     Return :data:`True` if the (possibly extensionless) file at `path`
     resembles a Python script. For now we simply verify the file contains
@@ -201,7 +216,7 @@ def _looks_like_script(path):
         fp = open(path, 'rb')
     except IOError:
         e = sys.exc_info()[1]
-        if e.args[0] == errno.EISDIR:
+        if e.args[0] == errno.EISDIR: # type: ignore
             return False
         raise
 
@@ -213,6 +228,7 @@ def _looks_like_script(path):
 
 
 def _py_filename(path):
+    # type: (Path) -> tuple[str|None, bool]
     """
     Returns a tuple of a Python path (if the file looks Pythonic) and whether or not
     the Python path is special. Special file paths/modules might only exist in memory
@@ -241,11 +257,15 @@ def _py_filename(path):
 
 
 def _get_core_source():
+    # type: () -> ModuleContentRaw|ModuleSourceCode
     """
     Master version of parent.get_core_source().
     """
     source = inspect.getsource(mitogen.core)
-    return mitogen.minify.minimize_source(source)
+    # TODO declare/don't declare source encoding of mitogen.*,
+    #      so this can have simpler return type
+    minified = mitogen.minify.minimize_source(source)  # type: ModuleContentRaw|ModuleSourceCode
+    return minified
 
 
 if mitogen.is_master:
@@ -284,6 +304,7 @@ else:
 
 
 def scan_code_imports(co):
+    # type: (CodeType) -> Iterable[tuple[int, ModuleName, Iterable[Name]]]
     """
     Given a code object `co`, scan its bytecode yielding any ``IMPORT_NAME``
     and associated prior ``LOAD_CONST`` instructions representing an `Import`
@@ -481,6 +502,7 @@ class FinderMethod(object):
         return '%s()' % (type(self).__name__,)
 
     def find(self, fullname):
+        # type: (ModuleName) -> ModuleFinderHit | None
         """
         Accept a canonical module name as would be found in :data:`sys.modules`
         and return a `(path, source, is_pkg)` tuple, where:
@@ -503,6 +525,7 @@ class DefectivePython3xMainMethod(FinderMethod):
     we must handle :mod:`__main__` specially.
     """
     def find(self, fullname):
+        # type: (str) -> ModuleFinderHit | None
         """
         Find :mod:`__main__` using its :data:`__file__` attribute.
         """
@@ -532,6 +555,7 @@ class PkgutilMethod(FinderMethod):
     be the only required implementation of get_module().
     """
     def find(self, fullname):
+        # type: (str) -> ModuleFinderHit | None
         """
         Find `fullname` using :func:`pkgutil.find_loader`.
         """
@@ -589,11 +613,7 @@ class PkgutilMethod(FinderMethod):
             LOG.debug('%r: path=%r, source=%r, aborting', self, path, source)
             return
 
-        if isinstance(source, mitogen.core.UnicodeType):
-            # get_source() returns "string" according to PEP-302, which was
-            # reinterpreted for Python 3 to mean a Unicode string.
-            source = source.encode('utf-8')
-
+        source = mitogen.core.utf8(source)
         return path, source, is_pkg
 
 
@@ -603,6 +623,7 @@ class SysModulesMethod(FinderMethod):
     specifically to support :mod:`__main__`, but it may catch a few more cases.
     """
     def find(self, fullname):
+        # type: (str) -> ModuleFinderHit | None
         """
         Find `fullname` using its :data:`__file__` attribute.
         """
@@ -634,6 +655,10 @@ class SysModulesMethod(FinderMethod):
             LOG.debug('%r: %r has no __file__, aborting', self, module)
             return
 
+        if not path:
+            LOG.debug('%r: %r.__file__==%r, aborting', self, path)
+            return
+
         path, _ = _py_filename(path)
         if not path:
             LOG.debug('%r: %r.__file__ is %r, aborting', self, module, path)
@@ -650,11 +675,7 @@ class SysModulesMethod(FinderMethod):
                 raise
             source = '\n'
 
-        if isinstance(source, mitogen.core.UnicodeType):
-            # get_source() returns "string" according to PEP-302, which was
-            # reinterpreted for Python 3 to mean a Unicode string.
-            source = source.encode('utf-8')
-
+        source = mitogen.core.utf8(source)
         return path, source, is_pkg
 
 
@@ -785,6 +806,7 @@ class ParentImpEnumerationMethod(FinderMethod):
             return None
 
     def find(self, fullname):
+        # type: (str) -> ModuleFinderHit | None
         """
         See implementation for a description of how this works.
         """
@@ -864,6 +886,7 @@ class ParentSpecEnumerationMethod(ParentImpEnumerationMethod):
                          % (self.__class__.__name__, fullname))
 
     def find(self, fullname):
+        # type: (str) -> ModuleFinderHit | None
         # Returns absolute path, ParentImpEnumerationMethod returns relative
         # >>> spec_pem.find('six_brokenpkg._six')[::2]
         # ('/Users/alex/src/mitogen/tests/data/importer/six_brokenpkg/_six.py', False)
@@ -921,15 +944,16 @@ class ModuleFinder(object):
     def __init__(self):
         #: Import machinery is expensive, keep :py:meth`:get_module_source`
         #: results around.
-        self._found_cache = {}
+        self._found_cache = {}  # type: dict[str, ModuleFinderResult]
 
         #: Avoid repeated dependency scanning, which is expensive.
-        self._related_cache = {}
+        self._related_cache = {}  # type: dict[str, ModuleNames]
 
     def __repr__(self):
         return 'ModuleFinder()'
 
     def add_source_override(self, fullname, path, source, is_pkg):
+        # type: (ModuleName, Path, ModuleContentRaw, bool) -> None
         """
         Explicitly install a source cache entry, preventing usual lookup
         methods from being used.
@@ -954,16 +978,17 @@ class ModuleFinder(object):
         SysModulesMethod(),
         ParentSpecEnumerationMethod(),
         ParentImpEnumerationMethod(),
-    ]
+    ]  # type: list[FinderMethod]
 
     def get_module_source(self, fullname):
+        # type: (ModuleName) -> ModuleFinderResult
         """
         Given the name of a loaded module `fullname`, attempt to find its
         source code.
 
         :returns:
-            Tuple of `(module path, source text, is package?)`, or :data:`None`
-            if the source cannot be found.
+            Tuple of `(module path, source text, is package?)`, or
+            :data:`(None, None, None)` if the source cannot be found.
         """
         tup = self._found_cache.get(fullname)
         if tup:
@@ -981,7 +1006,9 @@ class ModuleFinder(object):
         self._found_cache[fullname] = tup
         return tup
 
+    # FIXME this method is confused and/or confusing. Why is __init__ appended? Why is it called relpath?
     def resolve_relpath(self, fullname, level):
+        # type(ModuleName, int) -> str
         """
         Given an ImportFrom AST node, guess the prefix that should be tacked on
         to an alias name to produce a canonical name. `fullname` is the name of
@@ -1002,11 +1029,13 @@ class ModuleFinder(object):
         return '.'.join(bits[:-level]) + '.'
 
     def generate_parent_names(self, fullname):
+        # type: (ModuleName) -> Iterable[ModuleName]
         while '.' in fullname:
             fullname, _, _ = str_rpartition(to_text(fullname), u'.')
             yield fullname
 
     def find_related_imports(self, fullname):
+        # type: (ModuleName) -> ModuleNames
         """
         Return a list of non-stdlib modules that are directly imported by
         `fullname`, plus their parents.
@@ -1023,7 +1052,7 @@ class ModuleFinder(object):
             return related
 
         modpath, src, _ = self.get_module_source(fullname)
-        if src is None:
+        if modpath is None or src is None:
             return []
 
         maybe_names = list(self.generate_parent_names(fullname))
@@ -1056,6 +1085,7 @@ class ModuleFinder(object):
         ))
 
     def find_related(self, fullname):
+        # type: (ModuleName) -> ModuleNames
         """
         Return a list of non-stdlib modules that are imported directly or
         indirectly by `fullname`, plus their parents.
@@ -1082,15 +1112,16 @@ class ModuleFinder(object):
 
 class ModuleResponder(object):
     def __init__(self, router):
+        # type: (mitogen.core.Router) -> None
         self._log = logging.getLogger('mitogen.responder')
         self._router = router
         self._finder = ModuleFinder()
-        self._cache = {}  # fullname -> pickled
-        self.blacklist = []
-        self.whitelist = ['']
+        self._cache = {}  # type: dict[str, ModuleResponse]
+        self.blacklist = []  # type: list[ModuleName]
+        self.whitelist = ['']  # type: list[ModuleName]
 
         #: Context -> set([fullname, ..])
-        self._forwarded_by_context = {}
+        self._forwarded_by_context = {}  # type: dict[mitogen.core.Context, set[str]]
 
         #: Number of GET_MODULE messages received.
         self.get_module_count = 0
@@ -1114,6 +1145,7 @@ class ModuleResponder(object):
         return 'ModuleResponder'
 
     def add_source_override(self, fullname, path, source, is_pkg):
+        # type: (ModuleName, Path, ModuleContentRaw, bool) -> None
         """
         See :meth:`ModuleFinder.add_source_override`.
         """
@@ -1130,14 +1162,17 @@ class ModuleResponder(object):
     )
 
     def whitelist_prefix(self, fullname):
+        # type: (ModuleName) -> None
         if self.whitelist == ['']:
             self.whitelist = ['mitogen']
         self.whitelist.append(fullname)
 
     def blacklist_prefix(self, fullname):
+        # type: (ModuleName) -> None
         self.blacklist.append(fullname)
 
     def neutralize_main(self, path, src):
+        # type: (Path, ModuleContentRaw) -> bytes
         """
         Given the source for the __main__ module, try to find where it begins
         conditional execution based on a "if __name__ == '__main__'" guard, and
@@ -1154,11 +1189,13 @@ class ModuleResponder(object):
         raise ImportError('refused')
 
     def _make_negative_response(self, fullname):
+        # type: (ModuleName) -> ModuleResponseNegative
         return (fullname, None, None, None, ())
 
     minify_safe_re = re.compile(b(r'\s+#\s*!mitogen:\s*minify_safe'))
 
     def _build_tuple(self, fullname):
+        # type: (ModuleName) -> ModuleResponse
         if fullname in self._cache:
             return self._cache[fullname]
 
@@ -1166,6 +1203,12 @@ class ModuleResponder(object):
             raise ImportError('blacklisted')
 
         path, source, is_pkg = self._finder.get_module_source(fullname)
+        if path is None or source is None or is_pkg is None:
+            self._log.debug('Nothing found for %r', fullname)
+            tup = self._make_negative_response(fullname)
+            self._cache[fullname] = tup
+            return tup
+
         if path and is_stdlib_path(path):
             # Prevent loading of 2.x<->3.x stdlib modules! This costs one
             # RTT per hit, so a client-side solution is also required.
@@ -1215,6 +1258,7 @@ class ModuleResponder(object):
         return tup
 
     def _send_load_module(self, stream, fullname, reason):
+        # type: (mitogen.core.Stream, ModuleName, str) -> None
         if fullname not in stream.protocol.sent_modules:
             tup = self._build_tuple(fullname)
             msg = mitogen.core.Message.pickled(
@@ -1233,6 +1277,7 @@ class ModuleResponder(object):
                 self.bad_load_module_count += 1
 
     def _send_module_load_failed(self, stream, fullname):
+        # type: (mitogen.core.Stream, ModuleName) -> None
         self.bad_load_module_count += 1
         stream.protocol.send(
             mitogen.core.Message.pickled(
@@ -1243,6 +1288,7 @@ class ModuleResponder(object):
         )
 
     def _send_module_and_related(self, stream, fullname):
+        # type: (mitogen.core.Stream, ModuleName) -> None
         if fullname in stream.protocol.sent_modules:
             return
 
@@ -1261,6 +1307,7 @@ class ModuleResponder(object):
             self._send_module_load_failed(stream, fullname)
 
     def _on_get_module(self, msg):
+        # type: (mitogen.core.Message) -> None
         if msg.is_dead:
             return
 
@@ -1282,6 +1329,7 @@ class ModuleResponder(object):
             self.get_module_secs += mitogen.core.now() - t0
 
     def _send_forward_module(self, stream, context, fullname):
+        # type: (mitogen.core.Stream, mitogen.core.Context, ModuleName) -> None
         if stream.protocol.remote_id != context.context_id:
             stream.protocol._send(
                 mitogen.core.Message(
@@ -1292,6 +1340,7 @@ class ModuleResponder(object):
             )
 
     def _forward_one_module(self, context, fullname):
+        # type: (mitogen.core.Context, ModuleName) -> None
         forwarded = self._forwarded_by_context.get(context)
         if forwarded is None:
             forwarded = set()
@@ -1316,11 +1365,13 @@ class ModuleResponder(object):
             self._send_forward_module(stream, context, fullname)
 
     def _forward_modules(self, context, fullnames):
+        # type: (mitogen.core.Context, ModuleNames) -> None
         IOLOG.debug('%r._forward_modules(%r, %r)', self, context, fullnames)
         for fullname in fullnames:
             self._forward_one_module(context, mitogen.core.to_text(fullname))
 
     def forward_modules(self, context, fullnames):
+        # type: (mitogen.core.Context, ModuleNames) -> None
         self._router.broker.defer(self._forward_modules, context, fullnames)
 
 
