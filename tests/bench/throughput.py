@@ -1,12 +1,15 @@
-# Verify throughput over sudo and SSH at various compression levels.
-
+'''
+Measure Mitogen FileService throughput over local, sudo, and SSH.
+'''
 import os
+import optparse
+import sys
 import tempfile
 
 import mitogen
 import mitogen.core
 import mitogen.service
-import ansible_mitogen.affinity
+#import ansible_mitogen.affinity
 
 
 def prepare():
@@ -43,7 +46,21 @@ def run_test(router, fp, s, context):
 
 @mitogen.main()
 def main(router):
-    ansible_mitogen.affinity.policy.assign_muxprocess()
+    print(mitogen.pickle_protocol)
+    parser = optparse.OptionParser(description=__doc__)
+    parser.add_option(
+        '--ssh-host', metavar='HOST',
+        default='localhost',
+        help='default: %default',
+    )
+    parser.add_option(
+        '--ssh-python', metavar='PROG',
+        default=os.path.basename(sys.executable),
+        help='Interpreter on SSH host [default: %default]',
+    )
+    opts, _ = parser.parse_args()
+
+    #ansible_mitogen.affinity.policy.assign_muxprocess()
 
     bigfile = tempfile.NamedTemporaryFile()
     fill_with_random(bigfile, 1048576*512)
@@ -57,15 +74,21 @@ def main(router):
         run_test(router, bigfile, 'local()', context)
         context.shutdown(wait=True)
 
-        context = router.sudo()
-        run_test(router, bigfile, 'sudo()', context)
-        context.shutdown(wait=True)
+        #context = router.sudo()
+        #run_test(router, bigfile, 'sudo()', context)
+        #context.shutdown(wait=True)
 
-        context = router.ssh(hostname='localhost', compression=False)
+        context = router.ssh(
+            hostname=opts.ssh_host, python_path=opts.ssh_python,
+            compression=False,
+        )
         run_test(router, bigfile, 'ssh(compression=False)', context)
         context.shutdown(wait=True)
 
-        context = router.ssh(hostname='localhost', compression=True)
+        context = router.ssh(
+            hostname=opts.ssh_host, python_path=opts.ssh_python,
+            compression=True,
+        )
         run_test(router, bigfile, 'ssh(compression=True)', context)
         context.shutdown(wait=True)
     finally:
