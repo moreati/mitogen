@@ -141,7 +141,6 @@ else:
 if sys.version_info >= (2, 5):
     all, any = all, any
     BaseException = BaseException
-    def _update_linecache(path, data): pass
 else:
     import linecache
     BaseException = Exception
@@ -1348,13 +1347,14 @@ class Importer(object):
         # Presence of an entry in this map indicates in-flight GET_MODULE.
         self._callbacks = {}
         self._cache = {}
+        if sys.version_info < (2, 5) and core_src:
+            _update_linecache('x/mitogen/core.py', zlib.decompress(core_src))
         if core_src:
-            _update_linecache('x/mitogen/core.py', core_src)
             self._cache['mitogen.core'] = (
                 'mitogen.core',
                 None,
                 'x/mitogen/core.py',
-                zlib.compress(core_src, 9),
+                core_src,
                 [],
             )
         self._install_handler(router)

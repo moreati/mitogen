@@ -1446,10 +1446,9 @@ class Connection(object):
         V='V'
         # Stop looping if no more data is needed or EOF is detected (empty bytes).
         while n-len(C) and V:select.select([0],[],[]);V=os.read(0,n-len(C));C+=V
-        # Raises `zlib.error` if compressed preamble is truncated or invalid
-        C=zlib.decompress(C)
         f=os.fdopen(W,'wb',0)
-        f.write(C)
+        # Raises `zlib.error` if compressed preamble is truncated or invalid
+        f.write(zlib.decompress(C))
         f.close()
         f=os.fdopen(w,'wb',0)
         f.write(C)
