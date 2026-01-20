@@ -37,6 +37,13 @@ be expected. On the slave, it is built dynamically during startup.
 #: Library version as a tuple.
 __version__ = (0, 3, 38, 'dev')
 
+import os
+COMPRESSION_LEVEL = int(os.environ.get('MITOGEN_COMPRESSION_LEVEL', '9'))
+LOG_LEVEL = os.environ.get('MITOGEN_LOG_LEVEL', 'INFO')
+PICKLE_PROTOCOL = int(os.environ.get('MITOGEN_PICKLE_PROTOCOL', '2'))
+PROFILING = os.environ.get('MITOGEN_PROFILING') is not None
+PROFILE_FMT = os.environ.get('MITOGEN_PROFILE_FMT', '/tmp/mitogen.stats.%(pid)s.%(identity)s.%(now)s.%(ext)s')
+del os
 
 #: This is :data:`False` in slave contexts. Previously it was used to prevent
 #: re-execution of :mod:`__main__` in single file programs, however that now
@@ -59,12 +66,7 @@ parent_id = None
 parent_ids = []
 
 
-import os
-_default_profiling = os.environ.get('MITOGEN_PROFILING') is not None
-del os
-
-
-def main(log_level='INFO', profiling=_default_profiling):
+def main(log_level=LOG_LEVEL, profiling=PROFILING):
     """
     Convenience decorator primarily useful for writing discardable test
     scripts.
@@ -80,11 +82,9 @@ def main(log_level='INFO', profiling=_default_profiling):
         :py:func:`mitogen.utils.log_to_file`.
 
     :param bool profiling:
-        If :py:data:`True`, equivalent to setting
-        :py:attr:`mitogen.master.Router.profiling` prior to router
-        construction. This causes ``/tmp`` files to be created everywhere at
-        the end of a successful run with :py:mod:`cProfile` output for every
-        thread.
+        If :py:data:`True`, enables :py:mod:`cProfile` profiling of Mitogen.
+        :py:mod:`pstats` format files will be written for each thread at the
+        end of a successful run.
 
     Example:
 
@@ -107,11 +107,9 @@ def main(log_level='INFO', profiling=_default_profiling):
         if func.__module__ != '__main__':
             return func
         import mitogen.core
-        import mitogen.master
         import mitogen.utils
         if profiling:
             mitogen.core.enable_profiling()
-            mitogen.master.Router.profiling = profiling
         mitogen.utils.log_to_file(level=log_level)
         return mitogen.core._profile_hook(
             'app.main',

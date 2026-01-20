@@ -1393,15 +1393,6 @@ class Router(mitogen.parent.Router):
 
     broker_class = Broker
 
-    #: When :data:`True`, cause the broker thread and any subsequent broker and
-    #: main threads existing in any child to write
-    #: ``/tmp/mitogen.stats.<pid>.<thread_name>.log`` containing a
-    #: :mod:`cProfile` dump on graceful exit. Must be set prior to construction
-    #: of any :class:`Broker`, e.g. via::
-    #:
-    #:      mitogen.master.Router.profiling = True
-    profiling = os.environ.get('MITOGEN_PROFILING') is not None
-
     def __init__(self, broker=None, max_message_size=None):
         if broker is None:
             broker = self.broker_class()

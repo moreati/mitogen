@@ -31,9 +31,9 @@
 import datetime
 import functools
 import logging
-import os
 import sys
 
+import mitogen
 import mitogen.core
 import mitogen.master
 
@@ -87,7 +87,7 @@ def log_get_formatter():
     return formatter
 
 
-def log_to_file(path=None, io=False, level='INFO'):
+def log_to_file(path=None, io=False, level=mitogen.LOG_LEVEL):
     """
     Install a new :class:`logging.Handler` writing applications logs to the
     filesystem. Useful when debugging slave IO problems.
@@ -115,7 +115,6 @@ def log_to_file(path=None, io=False, level='INFO'):
     else:
         fp = sys.stderr
 
-    level = os.environ.get('MITOGEN_LOG_LEVEL', level).upper()
     io = level == 'IO'
     if io:
         level = 'DEBUG'

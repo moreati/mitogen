@@ -645,13 +645,6 @@ def enable_debug_logging():
     root.handlers.insert(0, handler)
 
 
-_profile_hook = lambda name, func, *args: func(*args)
-_profile_fmt = os.environ.get(
-    'MITOGEN_PROFILE_FMT',
-    '/tmp/mitogen.stats.%(pid)s.%(identity)s.%(now)s.%(ext)s',
-)
-
-
 def _profile_hook(name, func, *args):
     """
     Call `func(*args)` and return its result. This function is replaced by
@@ -668,7 +661,7 @@ def _real_profile_hook(name, func, *args):
     try:
         return func(*args)
     finally:
-        path = _profile_fmt % {
+        path = mitogen.PROFILE_FMT % {
             'now': int(1e6 * now()),
             'identity': name,
             'pid': os.getpid(),
@@ -4178,6 +4171,9 @@ class ExternalContext(object):
         del sys.modules['__main__']
 
     def _setup_globals(self):
+        mitogen.LOG_LEVEL = self.config['log_level']
+        mitogen.PROFILING = self.config['profiling']
+        mitogen.PROFILE_FMT = self.config['profile_fmt']
         mitogen.is_master = False
         mitogen.__version__ = self.config['version']
         mitogen.context_id = self.config['context_id']
